@@ -177,12 +177,6 @@ def get_plane(img1, img2, img3):
 
 # Step 4: Use a and b in the ResNet model for image classification
 # ... (code for using a and b in the ResNet model)
-
-
-
-
-
-
 #####################################################33
     a_norm = torch.dot(a.flatten(), a.flatten()).sqrt()
     a = a / a_norm
@@ -194,6 +188,7 @@ def get_plane(img1, img2, img3):
     second_coef = torch.dot(b.flatten(), b_orthog.flatten())
     #second_coef = torch.dot(b_orthog.flatten(), b.flatten()) / torch.dot(b_orthog.flatten(), b_orthog.flatten())
     coords = [[0,0], [a_norm,0], [first_coef, second_coef]]
+    print('Coordenadas de muestras?: ',coords)
     return a, b_orthog, b, coords
 
 

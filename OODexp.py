@@ -7,15 +7,12 @@ import numpy as np
 import random
 import pickle
 import time
-
+import matplotlib.pyplot as plt
 import torchvision
 import torchvision.transforms as transforms
-
 import os
 import argparse
 import time
-
-#Added imports TRDP
 import sys
 
 from model import get_model
@@ -24,22 +21,39 @@ from utils import get_loss_function, get_scheduler, get_random_images, produce_p
 from evaluation import train, test, test_on_trainset, decision_boundary, test_on_adv
 from options import options
 from utils import simple_lapsed_time
+from myFunctions import *
+from utils import produce_plot_sepleg_IMAGENET #TODO : fix representation of images
+import numpy as np
 
 args = options().parse_args()
-print(args)
-
-#Fixing the arguments
 
 #Important Note! -> Change the model loading in the intialization
 args.load_net = '/media/jpenatrapero/TAU/TRDP/OODrepo/dbViz/pretrained_models/resnet18-5c106cde.pth'
-args.net = 'resnet'
+args.net = 'resnet' 
 args.set_seed = '777'
 args.save_net = 'saves'
 args.imgs = 600,4000,1600
 args.epochs = 2
 args.lr = 0.01
-args.resolution = 10 #Default is 500 and it takes 3 mins
+args.resolution = 50 #Default is 500 and it takes 3 mins
 args.batch_size_planeloader = 1
+saveplot = False
+num_classes = 3
+num_images_experiment = 1
+idx_pred_im = [11,81,68]#Fixed values with the indexes corresponding 
+#to our original images in the format of the vector pred
+# the class_pred[idx_pred_im[1]] is the predicted class for the first imae of the triplet
+
+c1= "n02106662" #German shepard
+c2= "n03388043" #Fountain
+c3= "n03594945" #Jeep
+#Labesl of the imagenet
+labels = ['German_shepherd','fountain','jeep']
+ground_truth_im = [235,562,609]
+
+#Saving the results
+results_folder = "results"
+model_name = 'resnet50' #Name of the model for saved data
 
 # Log of the results
 args.active_log = False
@@ -80,17 +94,12 @@ start = time.time()
 best_acc = 0  # best test accuracy
 best_epoch = 0
 
-#########################################################
-#   TRAINING
-#########################################################
-if args.load_net is None:
-    print("args.load_net is None -> You need to provide the path to the weights!")
-
-
 
 #########################################################
 #   LOADING THE NETWORK
 #########################################################
+if args.load_net is None:
+    print("args.load_net is None -> You need to provide the path to the weights!")
 else:
     net.load_state_dict(torch.load(args.load_net))
     
@@ -99,31 +108,12 @@ else:
 # print(test_acc)
 end = time.time()
 simple_lapsed_time("Time taken to load the model", end-start)
-saveplot = False
 
-
-################# DEFINITIONS ###############################3
 
 
 ##############  DATASET   #################
-dataset_study_name = 'test10images'
-args.imgs = dataset_study_name
+args.imgs = 'test10images'
 
-
-###### CLASSES ##########
-num_classes = 3
-c1= "n02106662" #German shepard
-c2= "n03388043" #Fountain
-c3= "n03594945" #Jeep
-#Labesl of the imagenet
-labels = ['German_shepherd','fountain','jeep']
-ground_truth_im = [235,562,609]
-############################################################
-
-
-from myFunctions import *
-from utils import produce_plot_sepleg_IMAGENET #TODO : fix representation of images
-import numpy as np
 
 
 start = time.time()
@@ -132,51 +122,45 @@ if args.imgs is None:
 
 elif args.imgs == 'handcrafted':
     path_to_db= "OODatasets/handcrafted/"
-    images_triplets = getCombiFromDB(c1, c2, c3,path_to_db)
+    imgCombinationsTensor, filenames_combinations = getCombiFromDB(c1, c2, c3,path_to_db)
 
 elif args.imgs == 'signal':
     path_to_db= "OODatasets/signal/"
-    images_triplets = getCombiFromDB(c1, c2, c3,path_to_db)
+    imgCombinationsTensor, filenames_combinations = getCombiFromDB(c1, c2, c3,path_to_db)
 
 elif args.imgs == 'generated':
     path_to_db= "OODatasets/generated/"
-    images_triplets = getCombiFromDB(c1, c2, c3,path_to_db)
+    imgCombinationsTensor, filenames_combinations = getCombiFromDB(c1, c2, c3,path_to_db)
 
 elif args.imgs == 'imagenet':
     path_to_db= "OODatasets/imagenet_val_resized/"
-    images_triplets = getCombiFromDB(c1, c2, c3,path_to_db)
+    imgCombinationsTensor, filenames_combinations = getCombiFromDB(c1, c2, c3,path_to_db)
 
 elif args.imgs == 'test10images':
-    print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
     path_to_db= "/net/cremi/jpenatrapero/DATASETS/10images/"
-    images_triplets = getCombiFromDB(c1, c2, c3,path_to_db)
-    m = np.array(images_triplets)
+    imgCombinationsTensor, filenames_combinations = getCombiFromDB(c1, c2, c3,path_to_db)
+    m = np.array(imgCombinationsTensor)
     print(m.shape)
-
 else:
-    # Images that are going to be used for the representation
-    image_ids = args.imgs
-    images = [trainloader.dataset[i][0] for i in image_ids]
-    labels = [trainloader.dataset[i][1] for i in image_ids]
-    print(labels)
-
+    print('UNRECOGNICED image dataset')
+  
 
 sampleids = '_'.join(list(map(str,labels)))
-
-num_images_experiment = 10
 
 n_combis = num_images_experiment**num_classes
 
 accuracy_triplet = []
 margin_triplet = []
+results_all_pred = {}  # Initialize an empty dictionary to store pred matrices
 
-print('==> Starting loop through all triple combinations..')
+print('==> Starting loop through all triplet combinations..')
 for i_triplet in range(n_combis):
 
     progress = (i_triplet + 1) / n_combis * 100
-    print(f"Progress: {progress:.2f}% complete", end="\r", flush=True)
+    if progress % 10 < .1:  # Check if progress is a multiple of 10
+        print(f"Progress: {progress:.2f}% complete", end="\r", flush=True)
 
-    images = images_triplets[i_triplet]
+    images = imgCombinationsTensor[i_triplet]
 
     #Creating planeloader for the image space
     planeloader = make_planeloader(images, args)
@@ -191,37 +175,24 @@ for i_triplet in range(n_combis):
         os.makedirs(f'{plot_path}', exist_ok=True)
         produce_plot_sepleg_IMAGENET(plot_path, preds, planeloader, images, labels, trainloader, title = 'best', temp=1.0,true_labels = None)
         #produce_plot_alt(plot_path, preds, planeloader, images, labels, trainloader)
-
         # produce_plot_x(plot_path, preds, planeloader, images, labels, trainloader, title=title, temp=1.0,true_labels = None)
-
-
 
 
     #Getting the labels of the predictions
     preds = torch.stack((preds))
-    temp=0.01#Not sure what this does
+    temp=0.01 #Not sure what this does
     preds = nn.Softmax(dim=1)(preds / temp)
-    class_pred = torch.argmax(preds, dim=1).cpu().numpy()
+    class_vect = torch.argmax(preds, dim=1).cpu().numpy()
 
     #Converting vector to matrix
-    pred_matrix  = np.reshape(class_pred, (args.resolution, args.resolution))
+    pred_matrix  = np.reshape(class_vect, (args.resolution, args.resolution))
 
-    idx_pred_im = [808,9108,4791]#Fixed values with the indexes corresponding 
-    #to our original images in the format of the vector pred
-    # the class_pred[idx_pred_im[1]] is the predicted class for the first imae of the triplet
+    results_all_pred[f"Matrix_{i_triplet}"] = pred_matrix
+    results_all_pred[f"Combi_{i_triplet}"] = filenames_combinations[filenames_combinations]
 
-    #adjust to 10 by 10
-    idx_pred_im = [11,81,68]
+    #accuracy_triplet, margin_triplet = margin_TRDP_I (class_pred,pred_matrix,idx_pred_im,ground_truth_im,accuracy_triplet,margin_triplet)
 
-    accuracy_row = []
-    margin_row = []
-    for i in range(3):
-        accuracy_row.append(class_pred[idx_pred_im[i]] == ground_truth_im[i])
-        margin_row.append(margin_of_image(idx2label_mat(idx_pred_im[i]), pred_matrix, ground_truth_im[i]))
-    print(accuracy_row)
-    print(margin_row)
-    accuracy_triplet.append(accuracy_row)
-    margin_triplet.append(margin_row)
+    save_results('/results',results_all_pred)
 
 
 ############# END OF FOR LOOP TRHOUGH ALL THE TRIPLETS
@@ -230,13 +201,10 @@ end = time.time()
 simple_lapsed_time("Time taken for all combinatios of triplets", end-start)
 # Calculate average margins for accurate predictions
 
-import numpy as np
-import matplotlib.pyplot as plt
 
 
-results_folder = "results"
-model_name = 'resnet50'
-dataset_name = dataset_study_name
+
+dataset_name = args.imgs
 dataset_folder = os.path.join(results_folder, model_name,dataset_name)
 if not os.path.exists(dataset_folder):
     os.makedirs(dataset_folder)
