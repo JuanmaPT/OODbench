@@ -24,17 +24,6 @@ def margin_TRDP_I (class_pred,pred_matrix,idx_pred_im,ground_truth_im,accuracy_t
     margin_triplet.append(margin_row)
     return accuracy_triplet, margin_triplet
 
-def save_results(results_dir,results):
-    # Save the results dictionary to a file in the results folder
-    results_file = os.path.join(results_dir, "results.pkl")
-
-    # You can use the "pickle" library to save and load Python objects
-    import pickle
-
-    with open(results_file, "wb") as f:
-        pickle.dump(results, f)
-
-    print(f"Results saved to {results_file}")
 
 
 
@@ -60,7 +49,7 @@ def getCombiFromDB(c1, c2, c3,db):
         img2= imgToTensor(Image.open(combi[1]))
         img3= imgToTensor(Image.open(combi[2]))
 
-        imgCombinationsTensor.append(combi)
+        filenames_combinations.append(combi)
        
         imgCombinationsTensor.append([img1, img2, img3])
    
@@ -135,36 +124,18 @@ def mapCoordToIdx(coord):
 
 
 
-
-
-
-
-def save_preds_to_file(n_combis, generate_matrix_func, results_dir="results"):
-    results = {}  # Initialize an empty dictionary to store matrices
-
-    for i_triplet in range(n_combis):
-        pred_matrix = generate_matrix_func()  # Call the provided function to generate pred_matrix
-        
-        # Store the pred_matrix in the results dictionary
-        results[f"Matrix_{i_triplet}"] = pred_matrix
-
-    # Create the directory if it doesn't exist
+def save_results(results_dir,results):
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
-
     # Save the results dictionary to a file in the results folder
     results_file = os.path.join(results_dir, "results.pkl")
+
+    # You can use the "pickle" library to save and load Python objects
+    import pickle
 
     with open(results_file, "wb") as f:
         pickle.dump(results, f)
 
     print(f"Results saved to {results_file}")
 
-# Example function to generate pred_matrix
-def generate_matrix():
-    return np.random.randint(0, 1001, size=(10, 10))
 
-# Example usage of the function
-n_combis = 10  # Replace with the desired number of combinations
-results_directory = "results"  # Replace with the desired results directory
-save_matrices_to_file(n_combis, generate_matrix, results_directory)

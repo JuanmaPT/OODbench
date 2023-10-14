@@ -162,6 +162,8 @@ for i_triplet in range(n_combis):
 
     images = imgCombinationsTensor[i_triplet]
 
+    print(images)
+
     #Creating planeloader for the image space
     planeloader = make_planeloader(images, args)
     #Using the model to predict all the plane
@@ -188,11 +190,11 @@ for i_triplet in range(n_combis):
     pred_matrix  = np.reshape(class_vect, (args.resolution, args.resolution))
 
     results_all_pred[f"Matrix_{i_triplet}"] = pred_matrix
-    results_all_pred[f"Combi_{i_triplet}"] = filenames_combinations[filenames_combinations]
+    results_all_pred[f"Combi_{i_triplet}"] = filenames_combinations[i_triplet]
 
     #accuracy_triplet, margin_triplet = margin_TRDP_I (class_pred,pred_matrix,idx_pred_im,ground_truth_im,accuracy_triplet,margin_triplet)
 
-    save_results('/results',results_all_pred)
+save_results('/hello',results_all_pred)
 
 
 ############# END OF FOR LOOP TRHOUGH ALL THE TRIPLETS
