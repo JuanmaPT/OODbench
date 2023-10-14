@@ -1,0 +1,42 @@
+{
+    "os": "Linux-6.4.0-0.deb12.2-amd64-x86_64-with-glibc2.10",
+    "python": "3.8.10",
+    "heartbeatAt": "2023-09-27T13:43:25.140319",
+    "startedAt": "2023-09-27T13:43:24.197520",
+    "docker": null,
+    "gpu": "NVIDIA GeForce RTX 3060",
+    "gpu_count": 1,
+    "cpu_count": 20,
+    "cuda": null,
+    "args": [
+        "--load_net",
+        "/media/jpenatrapero/TAU/TRDP/OODrepo/dbViz/pretrained_models/resnet18-f37072fd.pth",
+        "--net",
+        "resnet",
+        "--set_seed",
+        "666",
+        "--save_net",
+        "saves",
+        "--imgs",
+        "500,5000,1600",
+        "--resolution",
+        "500",
+        "--active_log",
+        "--epochs",
+        "2",
+        "--lr",
+        "0.01"
+    ],
+    "state": "running",
+    "program": "main.py",
+    "codePath": "dbViz/main.py",
+    "git": {
+        "remote": "https://github.com/JuanmaPT/OODrepo.git",
+        "commit": "5ec5c7fe428c36b1ccd1404602d5048905941b14"
+    },
+    "email": null,
+    "root": "/media/jpenatrapero/TAU/TRDP/OODrepo",
+    "host": "welles",
+    "username": "jpenatrapero",
+    "executable": "/media/jpenatrapero/TAU/TRDP/conda/envs/dbviz/bin/python"
+}
