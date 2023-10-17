@@ -29,9 +29,7 @@ def get_model(args, device):
          #net = ResNet50()
         #net = resnet18()
         net = models.resnet18(pretrained=True)
-        
         #net.conv1 = torch.nn.Conv2d(num_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
-        print('####################################################HERE##########################################################3')
     elif args.net in ['VGG','vgg']:
         net = VGG('VGG19')
     elif args.net == 'GoogLeNet':

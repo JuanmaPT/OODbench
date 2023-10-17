@@ -175,9 +175,9 @@ def get_plane(img1, img2, img3):
         a = transform(a)
         b = transform(b)
 
-# Step 4: Use a and b in the ResNet model for image classification
-# ... (code for using a and b in the ResNet model)
-#####################################################33
+    # Step 4: Use a and b in the ResNet model for image classification
+    # ... (code for using a and b in the ResNet model)
+    #####################################################33
     a_norm = torch.dot(a.flatten(), a.flatten()).sqrt()
     a = a / a_norm
     first_coef = torch.dot(a.flatten(), b.flatten())
@@ -188,13 +188,15 @@ def get_plane(img1, img2, img3):
     second_coef = torch.dot(b.flatten(), b_orthog.flatten())
     #second_coef = torch.dot(b_orthog.flatten(), b.flatten()) / torch.dot(b_orthog.flatten(), b_orthog.flatten())
     coords = [[0,0], [a_norm,0], [first_coef, second_coef]]
-    print('Coordenadas de muestras?: ',coords)
+
     return a, b_orthog, b, coords
 
 
 class plane_dataset(torch.utils.data.Dataset):
     def __init__(self, base_img, vec1, vec2, coords, resolution=0.2,
                     range_l=.1, range_r=.1):
+        
+        
         self.base_img = base_img
         self.vec1 = vec1
         self.vec2 = vec2
@@ -214,12 +216,40 @@ class plane_dataset(torch.utils.data.Dataset):
         list1 = torch.linspace(self.bound1[0] - range_l*len1, self.bound1[1] + range_r*len1, int(resolution))
         list2 = torch.linspace(self.bound2[0] - range_l*len2, self.bound2[1] + range_r*len2, int(resolution))
 
+
+        """"
+        # Assuming you have the coordinates of the three images as coords
+        original_img1_coords = coords[0]  # Coordinates of img1
+        original_img2_coords = coords[1]  # Coordinates of img2
+        original_img3_coords = coords[2]  # Coordinates of img3
+
+        # Next, we need to find the indices of these coordinates in the grid
+        # Let's assume grid is a 2D grid you've created as mentioned in your code
+
+        # Calculate the closest indices for img1
+        img1_indices = [int((original_img1_coords[0] - list1[0]) / (list1[1] - list1[0])),
+                        int((original_img1_coords[1] - list2[0]) / (list2[1] - list2[0]))]
+
+        # Calculate the closest indices for img2
+        img2_indices = [int((original_img2_coords[0] - list1[0]) / (list1[1] - list1[0])),
+                        int((original_img2_coords[1] - list2[0]) / (list2[1] - list2[0]))]
+
+        # Calculate the closest indices for img3
+        img3_indices = [int((original_img3_coords[0] - list1[0]) / (list1[1] - list1[0])),
+                        int((original_img3_coords[1] - list2[0]) / (list2[1] - list2[0]))]
+
+        print("Indices of img1 in the grid:", img1_indices)
+        print("Indices of img2 in the grid:", img2_indices)
+        print("Indices of img3 in the grid:", img3_indices)
+
+        Indices of img1 in the grid: [4, 4]
+        Indices of img2 in the grid: [44, 4]
+        Indices of img3 in the grid: [20, 44]
+
+
+
+        """
         grid = torch.meshgrid([list1,list2])
-        """print(grid)
-        print("Number of elements in grid[0]:", len(grid[0]))
-        print("Number of elements in grid[1]:", len(grid[1]))
-        print("Number of elements in grid[0]flatten:", len(grid[0].flatten()))
-        print("Number of elements in grid[1]:flatten", len(grid[1].flatten()))"""
 
         self.coefs1 = grid[0].flatten()
         self.coefs2 = grid[1].flatten()

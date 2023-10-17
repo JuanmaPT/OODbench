@@ -124,11 +124,11 @@ def mapCoordToIdx(coord):
 
 
 
-def save_results(results_dir,results):
+def save_results(results_dir,results,filename):
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
     # Save the results dictionary to a file in the results folder
-    results_file = os.path.join(results_dir, "results.pkl")
+    results_file = os.path.join(results_dir, filename)
 
     # You can use the "pickle" library to save and load Python objects
     import pickle

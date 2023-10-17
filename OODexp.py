@@ -28,7 +28,7 @@ import numpy as np
 args = options().parse_args()
 
 #Important Note! -> Change the model loading in the intialization
-args.load_net = '/media/jpenatrapero/TAU/TRDP/OODrepo/dbViz/pretrained_models/resnet18-5c106cde.pth'
+args.load_net = '/net/travail/jpenatrapero/dbViz/pretrained_models/resnet18-5c106cde.pth'
 args.net = 'resnet' 
 args.set_seed = '777'
 args.save_net = 'saves'
@@ -39,7 +39,7 @@ args.resolution = 50 #Default is 500 and it takes 3 mins
 args.batch_size_planeloader = 1
 saveplot = False
 num_classes = 3
-num_images_experiment = 1
+num_images_experiment = 3
 idx_pred_im = [11,81,68]#Fixed values with the indexes corresponding 
 #to our original images in the format of the vector pred
 # the class_pred[idx_pred_im[1]] is the predicted class for the first imae of the triplet
@@ -112,7 +112,7 @@ simple_lapsed_time("Time taken to load the model", end-start)
 
 
 ##############  DATASET   #################
-args.imgs = 'test10images'
+args.imgs = 'imagenet'
 
 
 
@@ -139,8 +139,6 @@ elif args.imgs == 'imagenet':
 elif args.imgs == 'test10images':
     path_to_db= "/net/cremi/jpenatrapero/DATASETS/10images/"
     imgCombinationsTensor, filenames_combinations = getCombiFromDB(c1, c2, c3,path_to_db)
-    m = np.array(imgCombinationsTensor)
-    print(m.shape)
 else:
     print('UNRECOGNICED image dataset')
   
@@ -157,12 +155,9 @@ print('==> Starting loop through all triplet combinations..')
 for i_triplet in range(n_combis):
 
     progress = (i_triplet + 1) / n_combis * 100
-    if progress % 10 < .1:  # Check if progress is a multiple of 10
-        print(f"Progress: {progress:.2f}% complete", end="\r", flush=True)
+    print(f"Progress: {progress:.2f}% complete", end="\r", flush=True)
 
     images = imgCombinationsTensor[i_triplet]
-
-    print(images)
 
     #Creating planeloader for the image space
     planeloader = make_planeloader(images, args)
@@ -194,8 +189,6 @@ for i_triplet in range(n_combis):
 
     #accuracy_triplet, margin_triplet = margin_TRDP_I (class_pred,pred_matrix,idx_pred_im,ground_truth_im,accuracy_triplet,margin_triplet)
 
-save_results('/hello',results_all_pred)
-
 
 ############# END OF FOR LOOP TRHOUGH ALL THE TRIPLETS
 
@@ -204,18 +197,7 @@ simple_lapsed_time("Time taken for all combinatios of triplets", end-start)
 # Calculate average margins for accurate predictions
 
 
-
-
-dataset_name = args.imgs
-dataset_folder = os.path.join(results_folder, model_name,dataset_name)
-if not os.path.exists(dataset_folder):
-    os.makedirs(dataset_folder)
-# Save accuracy_triplet and margin_triplet to numpy files
-accuracy_file_path = os.path.join(dataset_folder, "accuracy_triplet.npy")
-margin_file_path = os.path.join(dataset_folder, "margin_triplet.npy")
-np.save(accuracy_file_path, accuracy_triplet)
-np.save(margin_file_path, margin_triplet)
-
+save_results('/net/travail/jpenatrapero/results',results_all_pred,"results_3_3_imagenet_original.pkl")
 
 
 

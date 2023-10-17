@@ -367,6 +367,5 @@ def decision_boundary(args, net, loader, device):
             if args.dryrun:
                 break
             
-        print(i)
         i = i + 1
     return predicted_labels
