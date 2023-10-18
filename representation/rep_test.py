@@ -14,21 +14,17 @@ with open('imagenet1klabels.txt', 'r') as file:
 # List the keys in the dictionary
 keys = data.keys()
 
+for i in range(20):
+    print(data[f'Combi_{i}'])
+
 
 
 
 # Create an image (replace this with your matrix)
-matrix = data['Matrix_0']  # Your 50x50 matrix of class labels
+matrix = data['Matrix_1']  # Your 50x50 matrix of class labels
 
-def on_click(event):
-    if event.inaxes is not None:
-        x, y = int(event.xdata), int(event.ydata)
-        value = matrix[y, x]
-        ax.set_title(f'Value at ({x}, {y}): {value}')
-# Create a sample 50x50 matrix (you can use your own data)
 
-# Define a colormap for different colors
-cmap = plt.get_cmap('viridis')  # You can choose a different colormap
+cmap = plt.get_cmap('viridis') 
 
 # Create a figure and axis for the plot
 fig, ax = plt.subplots()
@@ -40,12 +36,6 @@ img = ax.imshow(matrix, cmap=cmap)
 cbar = plt.colorbar(img)
 
 
-
-
-# Connect the click event to the function
-fig.canvas.mpl_connect('button_press_event', on_click)
-
-# Display the figure with interactivity
 plt.show()
 
 

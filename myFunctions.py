@@ -55,6 +55,39 @@ def getCombiFromDB(c1, c2, c3,db):
    
     return imgCombinationsTensor, filenames_combinations
 
+def getCombiFromDBoptimal(c1, c2, c3, db):
+    filenames_combinations = []
+
+    # Get the file paths of the images in each folder
+    class1_folder = db + c1 + "/"
+    class2_folder = db + c2 + "/"
+    class3_folder = db + c3 + "/"
+
+    class1 = [os.path.join(class1_folder, filename) for filename in os.listdir(class1_folder)]
+    class2 = [os.path.join(class2_folder, filename) for filename in os.listdir(class2_folder)]
+    class3 = [os.path.join(class3_folder, filename) for filename in os.listdir(class3_folder)]
+
+    # Generate combinations while ensuring unique rotations
+    imgCombinationsTensor = []
+    filenames_set = set()  # Use a set to store unique combinations
+
+    for combi in itertools.product(class1, class2, class3):
+        combi_sorted = sorted(combi)  # Sort the paths within each combination
+        combi_tuple = tuple(combi_sorted)
+
+        # Check if the combination is unique
+        if combi_tuple not in filenames_set:
+            filenames_set.add(combi_tuple)
+            filenames_combinations.append(combi_tuple)
+
+            img1 = imgToTensor(Image.open(combi_tuple[0]))
+            img2 = imgToTensor(Image.open(combi_tuple[1]))
+            img3 = imgToTensor(Image.open(combi_tuple[2]))
+
+            imgCombinationsTensor.append([img1, img2, img3])
+
+    return imgCombinationsTensor, filenames_combinations
+
 def extract_idx_triplets_from_tensor(images,class_pred,planeloader):
         distances = []  # List to store the distances
         triplet_index = []
