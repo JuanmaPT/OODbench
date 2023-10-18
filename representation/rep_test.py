@@ -4,7 +4,7 @@ import pickle
 import matplotlib.colors as mcolors
 from matplotlib.colors import ListedColormap, BoundaryNorm
 
-path_results = '/net/travail/jpenatrapero/results/results_3_3_imagenet_original.pkl'
+path_results = './results/results_3_3_imagenet_original.pkl'
 with open(path_results, 'rb') as file:
     data = pickle.load(file)
 
