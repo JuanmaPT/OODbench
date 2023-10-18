@@ -252,11 +252,3 @@ plt.imshow(tie.connected_components[2])
 regProp= tie.get_RegionProps()
 margins= tie.get_margins()
 
-#%%
-def plot_distance_transforms(distance_transforms, class_dict):
-    for i, dt in enumerate(distance_transforms):
-        plt.figure(figsize=(6, 6))
-        plt.imshow(dt, cmap='viridis', interpolation='nearest')
-        plt.title(f'Distance Transform for Class {list(class_dict.keys())[i]}')
-        plt.colorbar()
-        plt.
