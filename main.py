@@ -24,7 +24,7 @@ from utils import simple_lapsed_time
 args = options().parse_args()
 print(args)
 
-#Fixing the arguments
+#Fixing the arguments prueba blanca
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 save_path = args.save_net
