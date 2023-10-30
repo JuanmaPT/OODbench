@@ -60,6 +60,12 @@ args.active_log = False
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+if torch.cuda.is_available():
+    print("CUDA IS AVALIABLE $.$ ")
+else:
+    print("No cuda avaliable :´( ")
+
 save_path = args.save_net
 if args.active_log:
     import wandb
