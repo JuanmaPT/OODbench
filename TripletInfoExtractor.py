@@ -89,7 +89,7 @@ class TripletInfoExtractor:
         distances = self.get_distances_and_orientations()
         for class_list in distances:
             min_distance = min(class_list, key=lambda x:x[0])
-            margin.append(min_distance[0])
+            margin.append(min_distance)
         return margin 
 
     def get_RegionProps(self):

@@ -49,6 +49,9 @@ c2= "n03388043" #Fountain
 c3= "n03594945" #Jeep
 #Labesl of the imagenet
 labels = ['German_shepherd','fountain','jeep']
+#Indices of img1 in the grid: [4, 4]
+#Indices of img2 in the grid: [44, 4]
+#Indices of img3 in the grid: [20, 44]
 ground_truth_im = [235,562,609]
 
 #Saving the results

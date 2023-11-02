@@ -15,5 +15,12 @@ distances_class3= tie.get_distances_and_orientations()[2]
 plt.imshow(tie.connected_components[2])
 regProp= tie.get_RegionProps()
 margins= tie.get_margins()
+dts = tie.distance_transforms
 
-print(regProp)
+
+components= tie.connected_components
+fig, ax = plt.subplots()
+img = ax.imshow(dts[1])
+plt.show()
+
+print(len(components[0]))
