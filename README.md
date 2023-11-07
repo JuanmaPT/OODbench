@@ -30,8 +30,7 @@ By default, this project utilizes the following weights for ResNet18:
 Other weights are avaliable [in this folder](https://drive.google.com/drive/folders/1xPCseAqVNC7R9D5cfkSwe_mJWivzOFwM?usp=sharing).
 
 ## OODatasets
-The developed method uses a series of datasets that are contained in the following zip:
-- [OODatasets.zip](https://drive.google.com/file/d/1L-1qM3Gkod0Vw2JlwfDEsrFukCSqCLxi/view?usp=sharing)
+The developed method uses a series of datasets that are contained in the following zip:[OODatasets.zip](https://drive.google.com/file/d/1L-1qM3Gkod0Vw2JlwfDEsrFukCSqCLxi/view?usp=sharing)
 These folders contain a subset of images for 3 classes that were present in all the OOD datasets:
 
 - "n02106662"  German shepard
