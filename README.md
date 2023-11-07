@@ -3,7 +3,7 @@
 Welcome to the OOD Bench repository!
 
 ## Project Scope 🔍
-OOD Bench is a research project aimed at assesing the behaviour of model Decision Boundaries(DB) when classifying out-of-distribution data. The project evaluates various models and techniques for identifying and handling out-of-distribution samples in machine learning and computer vision applications. The experiments and DB visualization are based on  [Somepalli's paper repository ](https://drive.google.com/file/d/1Wa8tBWWWK3QZuKe1GADxhvniGDOPldNy/view?usp=sharing). This porject is framed in the course Tutored Research and Development Project(TRDP) of the international Image Processing and Computer Vision MSc. 
+OOD Bench is a research project aimed at assesing the behaviour of model Decision Boundaries(DB) when classifying out-of-distribution data. The project evaluates various models and techniques for identifying and handling out-of-distribution samples in machine learning and computer vision applications. The experiments and DB visualization are based on  [Somepalli's paper repository ](https://github.com/somepago/dbViz). This porject is framed in the course Tutored Research and Development Project(TRDP) of the international Image Processing and Computer Vision MSc. 
 
 ## Research Report 📑
 For detailed insights and results of the first part of the research, please refer to our research report:
