@@ -31,7 +31,7 @@ Other weights are avaliable [in this folder](https://drive.google.com/drive/fold
 
 ## OODatasets
 The developed method uses a series of datasets that are contained in the following zip:[OODatasets.zip](https://drive.google.com/file/d/1L-1qM3Gkod0Vw2JlwfDEsrFukCSqCLxi/view?usp=sharing)
-These folders contain a subset of images for 3 classes that were present in all the OOD datasets:
+These folders contain a subset of images for 3 classes that are present in all the OOD datasets:
 
 - "n02106662"  German shepard
 - "n03388043"  Fountain

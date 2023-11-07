@@ -174,7 +174,7 @@ for i_triplet in range(n_combis):
     if saveplot:
         os.makedirs(f'images/{net_name}/{args.train_mode}/{sampleids}/{str(args.set_seed)}', exist_ok=True)
         #lot_path = os.path.join(args.plot_path,f'{net_name}_{sampleids}_{args.set_seed}cifar10')
-        plot_path = os.path.join('paco',f'{net_name}_{sampleids}_{args.set_seed}testing')
+        plot_path = os.path.join('plots',f'{net_name}_{sampleids}_{args.set_seed}testing')
         os.makedirs(f'{plot_path}', exist_ok=True)
         produce_plot_sepleg_IMAGENET(plot_path, preds, planeloader, images, labels, trainloader, title = 'best', temp=1.0,true_labels = None)
         #produce_plot_alt(plot_path, preds, planeloader, images, labels, trainloader)
