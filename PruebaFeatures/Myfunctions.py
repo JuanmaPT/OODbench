@@ -7,6 +7,55 @@ from PIL import Image
 import itertools
 
 
+def get_folders(path):
+  """Returns a list of folders in the given path."""
+  folders = []
+  for item in os.listdir(path):
+    if os.path.isdir(os.path.join(path, item)):
+      folders.append(path + item)
+  return folders
+
+
+def get_triplets(c1, c2, c3, db, N):
+    ''' return a list with N list of image combinations, 
+        where each combination is a list of three images
+    '''
+    
+    filenames_combinations = []
+
+    # Get the file paths of the images in each folder
+    class1_folder = db + "/"+ c1 + "/"
+    class2_folder = db + "/"+ c2 + "/"
+    class3_folder = db + "/"+ c3 + "/"
+
+    class1 = [os.path.join(class1_folder, filename) for filename in os.listdir(class1_folder)[:N]]
+    class2 = [os.path.join(class2_folder, filename) for filename in os.listdir(class2_folder)[:N]]
+    class3 = [os.path.join(class3_folder, filename) for filename in os.listdir(class3_folder)[:N]]
+
+    # Generate combinations while ensuring unique rotations
+    imgCombinations = []
+    filenames_set = set()  # Use a set to store unique combinations
+
+    for combi in itertools.product(class1, class2, class3):
+        combi_sorted = sorted(combi)  # Sort the paths within each combination
+        combi_tuple = tuple(combi_sorted)
+
+        # Check if the combination is unique
+        if combi_tuple not in filenames_set:
+            filenames_set.add(combi_tuple)
+            filenames_combinations.append(combi_tuple)
+
+            img1 = Image.open(combi_tuple[0])
+            img2 = Image.open(combi_tuple[1])
+            img3 = Image.open(combi_tuple[2])
+
+            imgCombinations.append([img1, img2, img3])
+            
+    print(f"N= {N}")
+    print(f"Total number of unique combinations: {len(filenames_combinations)}")
+    return imgCombinations,  filenames_combinations
+
+
 def make_predictions_tripletImg(resnet_model, triplet):
     preds_img = []
     for image in triplet:
@@ -59,44 +108,6 @@ def extract_features_from_triplet(base_model, triplet):
     return feature_triplet
 
 
-def get_triplets(c1, c2, c3, db, N):
-    ''' return a list with N list of image combinations, 
-        where each combination is a list of three images
-    '''
-    
-    filenames_combinations = []
-
-    # Get the file paths of the images in each folder
-    class1_folder = db + c1 + "/"
-    class2_folder = db + c2 + "/"
-    class3_folder = db + c3 + "/"
-
-    class1 = [os.path.join(class1_folder, filename) for filename in os.listdir(class1_folder)[:N]]
-    class2 = [os.path.join(class2_folder, filename) for filename in os.listdir(class2_folder)[:N]]
-    class3 = [os.path.join(class3_folder, filename) for filename in os.listdir(class3_folder)[:N]]
-
-    # Generate combinations while ensuring unique rotations
-    imgCombinations = []
-    filenames_set = set()  # Use a set to store unique combinations
-
-    for combi in itertools.product(class1, class2, class3):
-        combi_sorted = sorted(combi)  # Sort the paths within each combination
-        combi_tuple = tuple(combi_sorted)
-
-        # Check if the combination is unique
-        if combi_tuple not in filenames_set:
-            filenames_set.add(combi_tuple)
-            filenames_combinations.append(combi_tuple)
-
-            img1 = Image.open(combi_tuple[0])
-            img2 = Image.open(combi_tuple[1])
-            img3 = Image.open(combi_tuple[2])
-
-            imgCombinations.append([img1, img2, img3])
-            
-    print(f"N= {N}")
-    print(f"Total number of unique combinations: {len(filenames_combinations)}")
-    return imgCombinations,  filenames_combinations
 
 
 def make_preds_from_planeset(model, planeset):
@@ -104,14 +115,19 @@ def make_preds_from_planeset(model, planeset):
     model.eval()
     r =int(np.sqrt(len(planeset)))
     preds = []
+    scores = []
     for idx in range(len(planeset)):
         mixfeat = planeset[idx]
         with torch.no_grad():
             pred = model(mixfeat)
             pred_class = pred.argmax().item()
             preds.append(pred_class)
+            scores.append(pred.softmax(dim=-1).max().item())
+    
+    planeset_pred = np.array(preds).reshape(r,r)
+    planeset_score = np.array(scores).reshape(r,r)
             
-    return np.array(preds).reshape(r,r)
+    return planeset_pred, planeset_score
 
 """
 def mse(image1, image2):
