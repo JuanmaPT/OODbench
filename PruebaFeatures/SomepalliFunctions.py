@@ -65,7 +65,7 @@ def get_plane(img1, img2, img3):
 class plane_dataset(torch.utils.data.Dataset):
     def __init__(self, base_img, vec1, vec2, coords, resolution,
                     range_l=.1, range_r=.1):
-    
+ 
         self.base_img = base_img
         self.vec1 = vec1
         self.vec2 = vec2
@@ -91,7 +91,6 @@ class plane_dataset(torch.utils.data.Dataset):
 
         self.coefs1 = self.grid[0].flatten()
         self.coefs2 = self.grid[1].flatten()
-        
         
         
     def get_grid(self):

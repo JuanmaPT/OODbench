@@ -6,6 +6,9 @@ from torchvision import models, transforms
 from PIL import Image
 import itertools
 
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import json
 
 def get_folders(path):
   """Returns a list of folders in the given path."""
@@ -76,6 +79,7 @@ def make_predictions_tripletImg(resnet_model, triplet):
             preds_img.append(pred_class.item())
             
     return preds_img
+
         
 
 def extract_features_from_triplet(base_model, triplet):
@@ -177,6 +181,103 @@ def get_anchor_dict(triplet, planeset,preds):
         anchor_dict[preds[i]] = (x,y)
     return anchor_dict 
   
+
+
+def get_custom_colors(N):
+    custom_colors = [
+        (0, 1, 1),  #Cyan
+        (1, 0, 0),  # Red
+        (0.8, 0.6, 1),  # Lavender
+        (0, 1, 0.5), # Lime Green
+        (1, 1, 0),  # Yellow
+        (1, 0.5, 1),  # Pink
+        (0, 0.5, 1),    # Sky Blue
+        (0.5, 0, 0.5),  # Purple      
+       ]  
+    
+    return custom_colors[:N]
+    
+def showTripletResult(planeset_scores, planeset_pred, tripletImg, triplet_pred, true_labels, title= None):  
+    
+    unique_classes = np.unique(planeset_pred)   
+    num_classes = len(unique_classes)
+
+    # Create a color map with black background
+    color_map = np.zeros((planeset_scores.shape[0], planeset_scores.shape[1], 3))
+
+    # Generate colors for each class
+    #cmap = plt.get_cmap('rainbow')
+    #colors = [to_rgba(cmap(i))[:3] for i in np.linspace(0, 1, num_classes)]
+    colors = get_custom_colors(num_classes)
+
+    # Assign colors based on prediction scores
+    for class_label, color in zip(unique_classes, colors):
+        class_indices = np.where(planeset_pred == class_label)
+        class_scores = planeset_scores[class_indices]
+        
+        # Use square root scaling for color intensity adjustment
+        #normalized_scores = (class_scores - np.min(class_scores)) / (np.max(class_scores) - np.min(class_scores))
+        
+        for idx, score in zip(zip(*class_indices), class_scores):
+            color_map[idx] = np.array(color) * score # Adjust color intensity based on the prediction score
+
+    
+    fig, (ax1, ax2, ax3_1, ax3_2, ax3_3) = plt.subplots(1, 5, figsize=(20, 5))
+
+    # Display the color map
+    im = ax1.imshow(color_map)
+    if title:
+        ax1.set_title(title)
+    else:
+        ax1.set_title('Planset prediction')
+    ax1.axis('off')
+
+    # Create legend for each class
+    #legend_elements = [Line2D([0], [0], marker='o', color='w',
+                              #label=f'{class_label}',
+                              #markerfacecolor=color, markersize=10) for class_label, color in zip(unique_classes, colors)]
+
+    #ax2.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(1, 1), borderaxespad=0.)
+    with open( "imagenet_class_index.json", 'r') as json_file:
+        data = json.load(json_file)
+    
+    
+    # Create a horizontal color bar for each class (going from less bright to more bright)
+    bar_height = 0.05  # Adjust the height based on your preference
+    space_between_bars = 0.02  # Adjust the space between bars
+    total_height = num_classes * (bar_height + space_between_bars) - space_between_bars
+    start_y = (1 - total_height) / 2
+
+    for i, (class_label, color) in enumerate(zip(unique_classes, colors)):
+        color_bar = np.ones((1, 100, 3)) * np.array(color)
+        color_bar[0, :, :] *= np.linspace(0, 1, 100)[:, np.newaxis]  # Adjust color intensity (reversed)
+        ax2.imshow(color_bar, extent=[0, 0.5, start_y + i * (bar_height + space_between_bars), start_y + (i + 1) * bar_height + i * space_between_bars], aspect='auto')
+
+        # Label indicating the corresponding class, centered
+        ax2.text(0.55, start_y + i * (bar_height + space_between_bars) + bar_height / 2, f'{class_label}: {data[str(class_label)][1]}', ha='left', va='center', rotation=0, fontsize=10)
+
+    ax2.set_xlim(0, 1)
+    ax2.set_ylim(0, 1)
+    ax2.axis('off')
+
+    # Add text annotations for 0 and 1 below the bars
+    #ax2.text(0, 0.25, '0', ha='center', va='center', fontsize=7)
+    #ax2.text(0.5, 0.25, '1', ha='center', va='center', fontsize= 7) 
+    ax2.text(0.45, 0.85, 'Prediction Scores colorbar', ha='center', va='center', fontsize= 9)
+    
+    #poner labels en genral
+    print(triplet_pred)
+    
+    # visualize triplet of images:
+    for i, path in enumerate(tripletImg):
+        img = mpimg.imread(path)
+        ax3 = plt.subplot(1, 5, i + 3)
+        ax3.imshow(img)
+        ax3.axis('off')
+        ax3.set_title(f"True class: {true_labels[i]}, {data[str(true_labels[i])][1]} \nPrediction:  {triplet_pred[i]}, {data[str(triplet_pred[i])][1]} ")
+
+    plt.show()
+
 
 
 

@@ -16,7 +16,7 @@ from Myfunctions import *
 from SomepalliFunctions import *
 
 from InfoDB import TripletInfoExtractor
-
+#%%
 dir_datasets = "C:/Users/Blanca/Documents/IPCV/TRDP/TRDP2/smallDatasets/"
 datasets = get_folders(dir_datasets)
 path_to_weights = "C:/Users/Blanca/Documents/IPCV/TRDP/TRDP2/resnet18-5c106cde.pth"
@@ -26,7 +26,7 @@ c1 = "n01498041"  # stingray - mantaraya
 c2 = "n01687978"  # agama - lagarto
 c3 = "n01534433"  # junco - pajaro
 
-true_labels = [6, 42 , 13]
+true_labels = [6, 13, 42]
 
 ############################# MODEL SELECTION #################################
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -64,27 +64,33 @@ head_model.eval()
 # 3. Class analysis based on the info extracted; using TripletInfoExtractor(planeset, anchor)
 ####################################################################################################################################
 
-
-N= 3 # number of samples
+N= 10 # number of samples
 resolution = 10
 all_planesetPreds= []
 all_planesetScores= []
+all_tripletPreds= []
 all_dicts= []
+filesTriplets= []
+
 
 for dataset in datasets:
     print(f"{dataset}")
     planesetPreds = []
     planesetScores = []
+    tripletPreds = []
     dataset_dicts = []
+    
     # get triplet combination
     imgCombis, filenamesCombi = get_triplets(c1, c2, c3, dataset, N)
-    
+    filesTriplets.append(filenamesCombi)
+
     for i,triplet in enumerate(imgCombis):
         # extract features from images in the triplet
         featTri = extract_features_from_triplet(base_model, triplet)
         
         # make predictions of features 
-        pred_triplet = make_predictions_tripletImg(resnet_model, triplet)
+        triplet_pred = make_predictions_tripletImg(resnet_model, triplet)
+        # get true_triplet
         
         # generate planeset (dataset of images on a 2D plane by combining a base feature vector with two vectors)
         print(f"Generating planeset for triplet {i+1}/{len(imgCombis)} ")
@@ -92,7 +98,7 @@ for dataset in datasets:
         planeset = plane_dataset(featTri[0], a, b_orthog, coords, resolution= resolution )
         
         # get the anchor position 
-        anchor = get_anchor_dict(featTri, planeset, pred_triplet)
+        anchor = get_anchor_dict(featTri, planeset, triplet_pred)
         
         print(f"Predicting planeset {i+1}/{len(imgCombis)}")
         planeset_pred, planeset_score = make_preds_from_planeset(head_model, planeset)
@@ -111,6 +117,7 @@ for dataset in datasets:
         dataset_dicts.append(triplet_dict)
         planesetPreds.append(planeset_pred)
         planesetScores.append(planeset_score)
+        tripletPreds.append(triplet_pred)
         
         
     # Append the dataset_dicts for this dataset
@@ -119,19 +126,21 @@ for dataset in datasets:
     # Append planeset predictions for this dataset
     all_planesetPreds.append(planesetPreds)    
     all_planesetScores.append(planesetScores)
+    all_tripletPreds.append(tripletPreds)
     
     # store results per class 
         
-        
-        
-                                           
-                                           
-        
-        
-        
-        
-    
-    
+
+#%% visualization example of a triplet
+triplet_id= 255 
+for dataset_id in range(4):
+    showTripletResult(all_planesetScores[dataset_id][triplet_id], 
+                       all_planesetPreds[dataset_id][triplet_id], 
+                       filesTriplets[dataset_id][triplet_id],
+                       all_tripletPreds[dataset_id][triplet_id],
+                       true_labels,
+                       f"Tiplet {triplet_id}")   
+
     
     
     
