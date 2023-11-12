@@ -176,7 +176,80 @@ class Planeset:
             # create the dictionary 
             anchor_dict[preds[i]] = (x,y)
         
-        return anchor_dict 
+        return anchor_dict
+    
+    def show(self, custome_colors, title):
+        unique_classes = np.unique(self.prediction)   
+        num_classes = len(unique_classes)
+
+        # Create a color map with black background
+        color_map = np.zeros((self.prediction.shape[0], self.prediction.shape[1], 3))
+
+        # Generate colors for each class
+        #cmap = plt.get_cmap('rainbow')
+        #colors = [to_rgba(cmap(i))[:3] for i in np.linspace(0, 1, num_classes)]
+        #colors = get_custom_colors(num_classes)
+
+        # Assign colors based on prediction scores
+        for class_label, color in zip(unique_classes, custome_colors):
+            class_indices = np.where(planeset_pred == class_label)
+            class_scores = planeset_scores[class_indices]
+            
+            # Use square root scaling for color intensity adjustment
+            #normalized_scores = (class_scores - np.min(class_scores)) / (np.max(class_scores) - np.min(class_scores))
+            
+            for idx, score in zip(zip(*class_indices), class_scores):
+                color_map[idx] = np.array(color) * score # Adjust color intensity based on the prediction score
+
+        
+        fig, (ax1, ax2, ax3_1, ax3_2, ax3_3) = plt.subplots(1, 5, figsize=(20, 5))
+
+        # Display the color map
+        im = ax1.imshow(color_map)
+        if title:
+            ax1.set_title(title)
+        else:
+            ax1.set_title('Planset prediction')
+        ax1.axis('off')
+
+        with open( "imagenet_class_index.json", 'r') as json_file:
+            data = json.load(json_file)
+        
+        
+        # Create a horizontal color bar for each class (going from less bright to more bright)
+        bar_height = 0.05  # Adjust the height based on your preference
+        space_between_bars = 0.02  # Adjust the space between bars
+        total_height = num_classes * (bar_height + space_between_bars) - space_between_bars
+        start_y = (1 - total_height) / 2
+
+        for i, (class_label, color) in enumerate(zip(unique_classes, colors)):
+            color_bar = np.ones((1, 100, 3)) * np.array(color)
+            color_bar[0, :, :] *= np.linspace(0, 1, 100)[:, np.newaxis]  # Adjust color intensity (reversed)
+            ax2.imshow(color_bar, extent=[0, 0.5, start_y + i * (bar_height + space_between_bars), start_y + (i + 1) * bar_height + i * space_between_bars], aspect='auto')
+
+            # Label indicating the corresponding class, centered
+            ax2.text(0.55, start_y + i * (bar_height + space_between_bars) + bar_height / 2, f'{class_label}: {data[str(class_label)][1]}', ha='left', va='center', rotation=0, fontsize=10)
+
+        ax2.set_xlim(0, 1)
+        ax2.set_ylim(0, 1)
+        ax2.axis('off')
+
+        # Add text annotations for 0 and 1 below the bars
+        #ax2.text(0, 0.25, '0', ha='center', va='center', fontsize=7)
+        #ax2.text(0.5, 0.25, '1', ha='center', va='center', fontsize= 7) 
+        ax2.text(0.45, 0.85, 'Prediction Scores colorbar', ha='center', va='center', fontsize= 9)
+      
+        
+        # visualize triplet of images:
+        for i, path in enumerate(tripletImg):
+            img = mpimg.imread(path)
+            ax3 = plt.subplot(1, 5, i + 3)
+            ax3.imshow(img)
+            ax3.axis('off')
+            ax3.set_title(f"True class: {self.config.labels[i]}, {data[str(self.config.labels[i])][1]}\nPrediction:  {self.triplet.prediction[i]}, {data[str(self.triplet.prediction[i])][1]} \nScore:  {self.triplet.score[i]}")
+
+        plt.show()
+        
         
     
 class PlanesetInfoExtractor:    
