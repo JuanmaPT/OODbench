@@ -6,7 +6,6 @@ Created on Sun Nov 12 17:50:44 2023
 """
 
 from Myfunctions2 import *
-#%%
 dir_datasets = "C:/Users/Blanca/Documents/IPCV/TRDP/TRDP2/smallDatasets/"
 datasets = get_folders(dir_datasets)
 
@@ -18,14 +17,14 @@ config = Configuration( model= 'ResNet18',
                        resolution= 10
                        )
 
-# prueba con val test firts luego meterlo en el loop
+# prueba con val test first luego meterlo en el loop conlos otros datsets
 dataset = datasets[2]
 filenamesCombis =  getCombiFromDBoptimal(config, dataset)
 print("Genarating planesets...")   
 planesets = [Planeset(Triplet(pathImgs, config), config) for pathImgs in filenamesCombis] 
-#%%
 print("Extracting DB descriptors...")
 descriptors = [PlanesetInfoExtractor(planeset,config) for planeset in planesets]   
+
 #%% visualization example 
 # for the first image visualize all the triplet combination
 path_img_to_show = filenamesCombis[0][0]
