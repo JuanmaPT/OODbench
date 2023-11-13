@@ -48,6 +48,7 @@ class Configuration:
         
       
         self.N = N
+        self.id_classes = id_classes
         
         # return the class for the given id
         with open( "imagenet_class_index.json", 'r') as json_file:
@@ -75,9 +76,9 @@ def getCombiFromDBoptimal(config, db_path):
     filenames_combinations = []
 
     # Get the file paths of the images in each folder
-    class1_folder = db_path + config.id_clases[0] + "/"
-    class2_folder = db_path + config.id_clases[1] + "/"
-    class3_folder = db_path + config.id_clases[2] + "/"
+    class1_folder = db_path + "/" + config.id_classes[0] + "/"
+    class2_folder = db_path + "/" + config.id_classes[1] + "/"
+    class3_folder = db_path + "/" + config.id_classes[2] + "/"
 
     class1 = [os.path.join(class1_folder, filename) for filename in os.listdir(class1_folder)[:config.N]]
     class2 = [os.path.join(class2_folder, filename) for filename in os.listdir(class2_folder)[:config.N]]
@@ -98,6 +99,22 @@ def getCombiFromDBoptimal(config, db_path):
     print(f"N= {config.N}")
     print(f"Total number of unique combinations: {len(filenames_combinations)}")
     return filenames_combinations
+
+
+
+def get_custom_colors(config):
+    custom_colors = [
+        (0, 1, 1),  #Cyan
+        (1, 0, 0),  # Red
+        (0.8, 0.6, 1),  # Lavender
+        (0, 1, 0.5), # Lime Green
+        (1, 1, 0),  # Yellow
+        (1, 0.5, 1),  # Pink
+        (0, 0.5, 1),    # Sky Blue
+        (0.5, 0, 0.5),  # Purple      
+       ]  
+    
+    return custom_colors[:config.N]
 
 
 
@@ -168,8 +185,8 @@ class Planeset:
         self.triplet = triplet
         self.config = config
         self.planeset = self.computePlaneset()
-        self.anchors = self.getAnchors()
         self.prediction, self.score = self.predict()
+        self.anchors = self.getAnchors()
     
        
     def computePlaneset(self):
@@ -189,7 +206,7 @@ class Planeset:
         for idx in range(len(self.planeset)):
             mixfeat = self.planeset[idx]
             with torch.no_grad():
-                pred = self.model(mixfeat)
+                pred = self.config.head_model(mixfeat)
                 pred_class = pred.argmax().item()
                 preds.append(pred_class)
                 scores.append(pred.softmax(dim=-1).max().item())
@@ -199,7 +216,7 @@ class Planeset:
                 
         return planeset_pred, planeset_score
         
-    def get_Anchors(self):
+    def getAnchors(self):
         anchor_dict = {}
         
         distances = []  # List to store the distances
@@ -212,17 +229,16 @@ class Planeset:
             distances = [] 
             triplet_index.append(min_distance_index)
         
-        
         for i,idx in enumerate(triplet_index):
             # convert 1d idx to x,y coords in a 2d grid
             x = idx % self.planeset.resolution
             y = idx // self.planeset.resolution
             # create the dictionary 
-            anchor_dict[self.prediction[i]] = (x,y)
+            anchor_dict[self.triplet.prediction[i]] = (x,y)
         
         return anchor_dict
     
-    def show(self, custome_colors, title):
+    def show(self, custome_colors, title=None):
         unique_classes = np.unique(self.prediction)   
         num_classes = len(unique_classes)
 
@@ -237,7 +253,7 @@ class Planeset:
         # Assign colors based on prediction scores
         for class_label, color in zip(unique_classes, custome_colors):
             class_indices = np.where(self.prediction == class_label)
-            class_scores = self.scpres[class_indices]
+            class_scores = self.score[class_indices]
             
             # Use square root scaling for color intensity adjustment
             #normalized_scores = (class_scores - np.min(class_scores)) / (np.max(class_scores) - np.min(class_scores))
@@ -285,7 +301,7 @@ class Planeset:
       
         
         # visualize triplet of images:
-        for i, path in enumerate(self.triplet.images):
+        for i, path in enumerate(self.triplet.pathImgs):
             img = mpimg.imread(path)
             ax3 = plt.subplot(1, 5, i + 3)
             ax3.imshow(img)
@@ -299,7 +315,7 @@ class Planeset:
 class PlanesetInfoExtractor:    
     def __init__(self, planeset, config):
         
-        self.label_img = planeset.planeset
+        self.label_img = planeset.prediction
         self.class_dict = planeset.anchors
         self.distance_transforms = self.calculate_distance_transforms()
         self.connected_components = self.calculate_connected_componets()
