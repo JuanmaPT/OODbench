@@ -59,6 +59,7 @@ class Configuration:
             for key, value in data.items():
                 if search_id in value:
                     self.labels.append(int(key))
+                    print(key,value)
                     
         self.resolution = resolution
 
@@ -96,7 +97,6 @@ def getCombiFromDBoptimal(config, db_path):
             filenames_set.add(combi_tuple)
             filenames_combinations.append(combi_tuple)
 
-    print(f"N= {config.N}")
     print(f"Total number of unique combinations: {len(filenames_combinations)}")
     return filenames_combinations
 
@@ -129,29 +129,6 @@ class Triplet:
     def getImages(self):
         return [Image.open(self.pathImgs[0]), Image.open(self.pathImgs[1]), Image.open(self.pathImgs[2])]
     
-    def predict(self):
-        preds_img = []
-        scores_imgs = []
-        for image in self.images:
-            # Preprocess the image to match the input requirements of the ResNet model 
-            preprocess = transforms.Compose([
-                transforms.Resize(256),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            ])
-            input_image = preprocess(image)
-            input_batch = input_image.unsqueeze(0)  # Add a batch dimension
-            
-            # Make predictions using the model
-            with torch.no_grad():
-                output = self.config.model(input_batch)
-                _,pred_class= output.max(1)
-                preds_img.append(pred_class.item())
-                scores_imgs.append(output.softmax(dim=-1).max().item())
-                
-        return preds_img, scores_imgs
-    
     def extractFeatures(self):
         feature_triplet = []
         for image in self.images:
@@ -178,6 +155,30 @@ class Triplet:
             feature_triplet.append(features)
 
         return feature_triplet
+    
+    def predict(self):
+        pred_imgs = []
+        score_imgs = []
+        for image in self.images:
+            # Preprocess the image to match the input requirements of the ResNet model 
+            preprocess = transforms.Compose([
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ])
+            input_image = preprocess(image)
+            input_batch = input_image.unsqueeze(0)  # Add a batch dimension
+            
+            # Make predictions using the model
+            with torch.no_grad():
+                output = self.config.model(input_batch)
+                _,pred_class= output.max(1)
+                pred_imgs.append(pred_class.item())
+                score_imgs.append(output.softmax(dim=-1).max().item())
+               
+        return pred_imgs, score_imgs
+        
     
 
 class Planeset:
@@ -238,6 +239,25 @@ class Planeset:
         
         return anchor_dict
     
+    """def getAnchors(self):
+        anchor_dict = {}
+        anchor_coords = []
+        # find the position by the one matching original prediciton
+        for y in range(self.config.resolution):
+            for x in range(self.config.resolution):
+                for i,pred in enumerate(self.triplet.prediction):
+                    if self.prediction[y,x] == pred and self.score[y,x] == self.triplet.score[i]:
+                        print(self.score[y,x])
+                        print(self.triplet.score[i])
+                        anchor_coords.append([x,y]) 
+       
+        for i,coords in enumerate(anchor_coords):
+            # create the dictionary 
+            anchor_dict[self.triplet.prediction[i]] = coords
+            
+            return anchor_dict"""
+        
+        
     def show(self, custome_colors, title=None):
         unique_classes = np.unique(self.prediction)   
         num_classes = len(unique_classes)
