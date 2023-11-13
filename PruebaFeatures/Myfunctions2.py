@@ -3,13 +3,13 @@ import torch.nn as nn
 from torchvision import models, transforms
 import json 
 
+import os
 import numpy as np 
 import cv2
 from skimage import measure
 from skimage.measure import regionprops
 
 from SomepalliFunctions import get_plane, plane_dataset
-
 
 class Configuration:
     def __init__(self, model, N, id_classes, resolution):
@@ -55,9 +55,48 @@ class Configuration:
                     self.labels.append(int(key))
                     
         self.resolution = resolution
-                    
-                    
-        
+
+
+def get_folders(path):
+  """Returns a list of folders in the given path."""
+  folders = []
+  for item in os.listdir(path):
+    if os.path.isdir(os.path.join(path, item)):
+      folders.append(path + item)
+  return folders
+
+
+def getCombiFromDBoptimal(config, db_path):
+    filenames_combinations = []
+
+    # Get the file paths of the images in each folder
+    class1_folder = db_path + config.id_clases[0] + "/"
+    class2_folder = db_path + config.id_clases[1] + "/"
+    class3_folder = db_path + config.id_clases[2] + "/"
+
+    class1 = [os.path.join(class1_folder, filename) for filename in os.listdir(class1_folder)[:N]]
+    class2 = [os.path.join(class2_folder, filename) for filename in os.listdir(class2_folder)[:N]]
+    class3 = [os.path.join(class3_folder, filename) for filename in os.listdir(class3_folder)[:N]]
+
+    # Generate combinations while ensuring unique rotations
+    imgCombinationsTensor = []
+    filenames_set = set()  # Use a set to store unique combinations
+
+    for combi in itertools.product(class1, class2, class3):
+        combi_sorted = sorted(combi)  # Sort the paths within each combination
+        combi_tuple = tuple(combi_sorted)
+
+        # Check if the combination is unique
+        if combi_tuple not in filenames_set:
+            filenames_set.add(combi_tuple)
+            filenames_combinations.append(combi_tuple)
+
+    print(f"N= {N}")
+    print(f"Total number of unique combinations: {len(filenames_combinations)}")
+    return filenames_combinations
+
+
+
 class Triplet:
     def __init__(self, pathImgs, config):
         self.pathImgs = pathImgs
@@ -67,7 +106,7 @@ class Triplet:
         self.prediction, self.score = self.predict()
 
     def getImages(self):
-        return [Image.open(path[0]]), Image.open(path[1]), Image.open(path[2]) for path in self.pathImgs]
+        return [Image.open(path[0]), Image.open(path[1]), Image.open(path[2]) for path in self.pathImgs]
     
     def predict(self):
         preds_img = []
@@ -365,11 +404,3 @@ class PlanesetInfoExtractor:
 
         return region_props_dict      
         
-    
-        
-          
-            
-        
-        
-        
-            
