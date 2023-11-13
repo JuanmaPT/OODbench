@@ -102,7 +102,7 @@ def getCombiFromDBoptimal(config, db_path):
 
 
 
-def get_custom_colors(config):
+def get_custom_colors(num):
     custom_colors = [
         (0, 1, 1),  #Cyan
         (1, 0, 0),  # Red
@@ -114,7 +114,7 @@ def get_custom_colors(config):
         (0.5, 0, 0.5),  # Purple      
        ]  
     
-    return custom_colors[:config.N]
+    return custom_colors[:num]
 
 
 
@@ -125,6 +125,7 @@ class Triplet:
         self.images = self.getImages()
         self.features = self.extractFeatures()
         self.prediction, self.score = self.predict()
+        self.isImgPredCorrect = self.checkPred()
 
     def getImages(self):
         return [Image.open(self.pathImgs[0]), Image.open(self.pathImgs[1]), Image.open(self.pathImgs[2])]
@@ -179,6 +180,8 @@ class Triplet:
                
         return pred_imgs, score_imgs
         
+    def checkPred(self):
+        return [pred == true_label for pred, true_label in zip(self.prediction, self.config.labels)]
     
 
 class Planeset:
@@ -258,7 +261,7 @@ class Planeset:
             return anchor_dict"""
         
         
-    def show(self, custome_colors, title=None):
+    def show(self, title=None):
         unique_classes = np.unique(self.prediction)   
         num_classes = len(unique_classes)
 
@@ -268,14 +271,13 @@ class Planeset:
         # Generate colors for each class
         #cmap = plt.get_cmap('rainbow')
         #colors = [to_rgba(cmap(i))[:3] for i in np.linspace(0, 1, num_classes)]
-        #colors = get_custom_colors(num_classes)
+        custom_colors = get_custom_colors(num_classes)
 
         # Assign colors based on prediction scores
-        for class_label, color in zip(unique_classes, custome_colors):
+        for class_label, color in zip(unique_classes, custom_colors):
             class_indices = np.where(self.prediction == class_label)
             class_scores = self.score[class_indices]
             
-            # Use square root scaling for color intensity adjustment
             #normalized_scores = (class_scores - np.min(class_scores)) / (np.max(class_scores) - np.min(class_scores))
             
             for idx, score in zip(zip(*class_indices), class_scores):
@@ -302,7 +304,7 @@ class Planeset:
         total_height = num_classes * (bar_height + space_between_bars) - space_between_bars
         start_y = (1 - total_height) / 2
 
-        for i, (class_label, color) in enumerate(zip(unique_classes, custome_colors)):
+        for i, (class_label, color) in enumerate(zip(unique_classes, custom_colors)):
             color_bar = np.ones((1, 100, 3)) * np.array(color)
             color_bar[0, :, :] *= np.linspace(0, 1, 100)[:, np.newaxis]  # Adjust color intensity (reversed)
             ax2.imshow(color_bar, extent=[0, 0.5, start_y + i * (bar_height + space_between_bars), start_y + (i + 1) * bar_height + i * space_between_bars], aspect='auto')
@@ -331,32 +333,42 @@ class Planeset:
         plt.show()
         
         
-    
 class PlanesetInfoExtractor:    
     def __init__(self, planeset, config):
-        
+
         self.label_img = planeset.prediction
         self.class_dict = planeset.anchors
-        self.distance_transforms = self.calculate_distance_transforms()
-        self.connected_components = self.calculate_connected_componets()
-        self.max_distance_transform = self.get_max_distance_transforms()
-        self.dist_angle_from_anchor = self.get_distances_and_orientations()
-        self.margin = self.get_margins()
-        self.regionProps = self.get_RegionProps()
+        self.classMasks = self.get_class_masks()
+        
+        # for the distance transform approach 
+        self.distanceTransforms = self.calculate_distance_transforms()
+        #self.distanceFromAnchorToBorder = self.get_distance_from_anchor_to_border()
+        #self.margin1 = self.get_max_distance_transforms
+        
+    
+        #self.connected_components = self.calculate_connected_componets()
+        
+        #self.dist_angle_from_anchor = self.get_distances_and_orientations()
+        #self.margin = self.get_margins()
+        #self.regionProps = self.get_RegionProps()
 
-    def calculate_distance_transforms(self): 
-        distance_transforms= []
+    
+    def get_class_masks(self):
+        class_masks = []
         for target_class, anchor in self.class_dict.items():
             class_mask = np.zeros_like(self.label_img)
             class_mask[self.label_img == target_class] = 1
-
+        return class_masks
+       
+    def calculate_distance_transforms(self): 
+        distance_transforms= []
+        for class_mask in self.classMasks:
             distance_transform = cv2.distanceTransform((class_mask* 255).astype(np.uint8), cv2.DIST_L2, 3) #neighborhood size 3x3
-            distance_transforms.append(distance_transform)
-            
+            distance_transforms.append(distance_transform)        
         return distance_transforms
     
-    def get_max_distance_transforms(self):
-         max_distances = [np.max(dt) for dt in self.distance_transforms]
+    """def get_max_distance_transforms(self):
+         max_distances = [np.max(dt) for dt in self.distanceTransforms]
          max_positions = [np.unravel_index(np.argmax(dt, axis=None), dt.shape) for dt in self.distance_transforms]
          return [(i,j) for i,j in zip(max_distances, max_positions)]
 
@@ -365,35 +377,19 @@ class PlanesetInfoExtractor:
         # using distance transform approach
         distances = [] 
         for i, (target_class, anchor) in enumerate(self.class_dict.items()):
+            print(i)
+            plt.imshow(self.distanceTransforms[i])
             row, col = anchor
-            distances.append(self.distance_transforms[i][row, col])  
+            distances.append(self.distanceTransforms[i][row, col])  
         return distances
             
-    def calculate_connected_componets(self):
-        conn = [] 
-        for i, (target_class, anchor) in enumerate(self.class_dict.items()):
-            row, col = anchor
-            class_mask = np.zeros_like(self.label_img)
-            class_mask[self.label_img == target_class] = 1     
-            
-            # Label connected components in the binary mask
-            labeled_image, num_labels = measure.label(class_mask, connectivity=2, return_num=True)
-            
-            # Find the label containing the anchor
-            anchor_label = labeled_image[row, col]
-            
-            # Create a mask for the component containing the anchor
-            component_mask = (labeled_image == anchor_label).astype(np.uint8)
-            conn.append(component_mask)
-            
-        return conn
-    
+  
     def get_distances_and_orientations(self):
         out = [] 
         # get the contour of the component
         for i, (target_class, anchor) in enumerate(self.class_dict.items()):
             row, col = anchor
-            contours, _ = cv2.findContours(np.uint8(self.connected_components[i]), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)  
+            contours, _ = cv2.findContours(np.uint8(self.classMasks[i]), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)  
             
             # compute distance and angle from anchor to point in contour
             distances_and_orientations = {}
@@ -421,6 +417,7 @@ class PlanesetInfoExtractor:
     def get_margins(self):
         # the minimum distance between  the anchor and all the points in the border      
         margin= []
+        
         distances = self.get_distances_and_orientations()
         for class_list in distances:
             min_distance = min(class_list, key=lambda x:x[0])
@@ -444,5 +441,4 @@ class PlanesetInfoExtractor:
 
             region_props_dict[target_class] = region_dict
 
-        return region_props_dict      
-        
+        return region_props_dict"""
