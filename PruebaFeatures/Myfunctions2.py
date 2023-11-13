@@ -9,6 +9,11 @@ import cv2
 from skimage import measure
 from skimage.measure import regionprops
 
+from PIL import Image
+import itertools
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+
 from SomepalliFunctions import get_plane, plane_dataset
 
 class Configuration:
@@ -27,7 +32,7 @@ class Configuration:
             self.base_model.eval()
             
             # classification head to make predictions over features
-            self.head_model = head_model = nn.Sequential(                                                   
+            self.head_model = nn.Sequential(                                                   
                 nn.Flatten(),
                 nn.Linear(512, 1000)
             )
@@ -74,12 +79,11 @@ def getCombiFromDBoptimal(config, db_path):
     class2_folder = db_path + config.id_clases[1] + "/"
     class3_folder = db_path + config.id_clases[2] + "/"
 
-    class1 = [os.path.join(class1_folder, filename) for filename in os.listdir(class1_folder)[:N]]
-    class2 = [os.path.join(class2_folder, filename) for filename in os.listdir(class2_folder)[:N]]
-    class3 = [os.path.join(class3_folder, filename) for filename in os.listdir(class3_folder)[:N]]
+    class1 = [os.path.join(class1_folder, filename) for filename in os.listdir(class1_folder)[:config.N]]
+    class2 = [os.path.join(class2_folder, filename) for filename in os.listdir(class2_folder)[:config.N]]
+    class3 = [os.path.join(class3_folder, filename) for filename in os.listdir(class3_folder)[:config.N]]
 
     # Generate combinations while ensuring unique rotations
-    imgCombinationsTensor = []
     filenames_set = set()  # Use a set to store unique combinations
 
     for combi in itertools.product(class1, class2, class3):
@@ -91,7 +95,7 @@ def getCombiFromDBoptimal(config, db_path):
             filenames_set.add(combi_tuple)
             filenames_combinations.append(combi_tuple)
 
-    print(f"N= {N}")
+    print(f"N= {config.N}")
     print(f"Total number of unique combinations: {len(filenames_combinations)}")
     return filenames_combinations
 
@@ -101,18 +105,19 @@ class Triplet:
     def __init__(self, pathImgs, config):
         self.pathImgs = pathImgs
         self.config= config
-        self.imges = self.getImages()
+        self.images = self.getImages()
         self.features = self.extractFeatures()
         self.prediction, self.score = self.predict()
 
     def getImages(self):
-        return [Image.open(path[0]), Image.open(path[1]), Image.open(path[2]) for path in self.pathImgs]
+        return [Image.open(self.pathImgs[0]), Image.open(self.pathImgs[1]), Image.open(self.pathImgs[2])]
     
     def predict(self):
         preds_img = []
         scores_imgs = []
         for image in self.images:
-            # Preprocess the image to match the input requirements of the ResNet model preprocess = transforms.Compose([
+            # Preprocess the image to match the input requirements of the ResNet model 
+            preprocess = transforms.Compose([
                 transforms.Resize(256),
                 transforms.CenterCrop(224),
                 transforms.ToTensor(),
@@ -123,7 +128,7 @@ class Triplet:
             
             # Make predictions using the model
             with torch.no_grad():
-                output = config.model(input_batch)
+                output = self.config.model(input_batch)
                 _,pred_class= output.max(1)
                 preds_img.append(pred_class.item())
                 scores_imgs.append(output.softmax(dim=-1).max().item())
@@ -132,7 +137,7 @@ class Triplet:
     
     def extractFeatures(self):
         feature_triplet = []
-        for image in self.images::
+        for image in self.images:
             if image.mode != 'RGB':
                 image = image.convert('RGB')
 
@@ -150,7 +155,7 @@ class Triplet:
             
             # Extract features with the base model
             with torch.no_grad():
-                features = config.base_model(image)
+                features = self.config.base_model(image)
             
             #print(features.shape)
             feature_triplet.append(features)
@@ -169,10 +174,10 @@ class Planeset:
        
     def computePlaneset(self):
         # calculate the plane spanned by the three images 
-        a, b_orthog, b, coords = get_plane(triplet.features[0], triplet.features[1], triplet.features[2])
+        a, b_orthog, b, coords = get_plane(self.triplet.features[0], self.triplet.features[1], self.triplet.features[2])
         
         # get the dataset of images on a 2D plane by the combination of the features
-        return plane_dataset(featTri[0], a, b_orthog, coords, resolution= self.config.resolution )
+        return plane_dataset(self.triplet.features[0], a, b_orthog, coords, resolution= self.config.resolution )
         
     
     def predict(self):
@@ -200,20 +205,20 @@ class Planeset:
         distances = []  # List to store the distances
         triplet_index = []
         for image_idx in range(3):
-            for batch_idx, inputs in enumerate(planeset):
-                distance = torch.dist(inputs, images[image_idx])
+            for batch_idx, inputs in enumerate(self.planeset):
+                distance = torch.dist(inputs, self.triplet.features[image_idx])
                 distances.append(distance.item()) 
             min_distance_index = distances.index(min(distances))           
             distances = [] 
             triplet_index.append(min_distance_index)
         
         
-        for i,idx in enumerate(triplet_idx):
+        for i,idx in enumerate(triplet_index):
             # convert 1d idx to x,y coords in a 2d grid
-            x = idx % planeset.resolution
-            y = idx // planeset.resolution
+            x = idx % self.planeset.resolution
+            y = idx // self.planeset.resolution
             # create the dictionary 
-            anchor_dict[preds[i]] = (x,y)
+            anchor_dict[self.prediction[i]] = (x,y)
         
         return anchor_dict
     
@@ -231,8 +236,8 @@ class Planeset:
 
         # Assign colors based on prediction scores
         for class_label, color in zip(unique_classes, custome_colors):
-            class_indices = np.where(planeset_pred == class_label)
-            class_scores = planeset_scores[class_indices]
+            class_indices = np.where(self.prediction == class_label)
+            class_scores = self.scpres[class_indices]
             
             # Use square root scaling for color intensity adjustment
             #normalized_scores = (class_scores - np.min(class_scores)) / (np.max(class_scores) - np.min(class_scores))
@@ -261,7 +266,7 @@ class Planeset:
         total_height = num_classes * (bar_height + space_between_bars) - space_between_bars
         start_y = (1 - total_height) / 2
 
-        for i, (class_label, color) in enumerate(zip(unique_classes, colors)):
+        for i, (class_label, color) in enumerate(zip(unique_classes, custome_colors)):
             color_bar = np.ones((1, 100, 3)) * np.array(color)
             color_bar[0, :, :] *= np.linspace(0, 1, 100)[:, np.newaxis]  # Adjust color intensity (reversed)
             ax2.imshow(color_bar, extent=[0, 0.5, start_y + i * (bar_height + space_between_bars), start_y + (i + 1) * bar_height + i * space_between_bars], aspect='auto')
@@ -280,7 +285,7 @@ class Planeset:
       
         
         # visualize triplet of images:
-        for i, path in enumerate(tripletImg):
+        for i, path in enumerate(self.triplet.images):
             img = mpimg.imread(path)
             ax3 = plt.subplot(1, 5, i + 3)
             ax3.imshow(img)
@@ -373,6 +378,7 @@ class PlanesetInfoExtractor:
                    
             out.append(list(distances_and_orientations.values()))    
         return  out
+    
     
     
     
