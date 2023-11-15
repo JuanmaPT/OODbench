@@ -17,7 +17,7 @@ import matplotlib.image as mpimg
 from SomepalliFunctions import get_plane, plane_dataset
 
 class Configuration:
-    def __init__(self, model, N, id_classes, resolution):
+    def __init__(self, model, N, id_classes, resolution, margin_th):
      
         if model == 'ResNet18':
             path_to_weights = "C:/Users/Blanca/Documents/IPCV/TRDP/TRDP2/resnet18-5c106cde.pth"
@@ -62,6 +62,7 @@ class Configuration:
                     print(key,value)
                     
         self.resolution = resolution
+        self.margin_th = margin_th
 
 
 def get_folders(path):
@@ -237,6 +238,7 @@ class Planeset:
             # convert 1d idx to x,y coords in a 2d grid
             x = idx % self.planeset.resolution
             y = idx // self.planeset.resolution
+            
             # create the dictionary 
             anchor_dict[self.triplet.prediction[i]] = (x,y)
         
@@ -331,114 +333,122 @@ class Planeset:
             ax3.set_title(f"True class: {self.config.labels[i]}, {data[str(self.config.labels[i])][1]}\nPrediction:  {self.triplet.prediction[i]}, {data[str(self.triplet.prediction[i])][1]} \nScore:  {self.triplet.score[i]}")
 
         plt.show()
-        
+
+
+def euclidean_distance(vector1, vector2):
+    flattened_vector1 = vector1.view(-1) # flatten
+    flattened_vector2 = vector2.view(-1)
+    return torch.sqrt(torch.sum((flattened_vector1 - flattened_vector2)**2))
+
         
 class PlanesetInfoExtractor:    
-    def __init__(self, planeset, config):
-
-        self.label_img = planeset.prediction
-        self.class_dict = planeset.anchors
+     def __init__(self, planeset, config):
+         
+        self.planeset= planeset
+        self.config = config
         self.classMasks = self.get_class_masks()
-        
-        # for the distance transform approach 
-        self.distanceTransforms = self.calculate_distance_transforms()
-        #self.distanceFromAnchorToBorder = self.get_distance_from_anchor_to_border()
-        #self.margin1 = self.get_max_distance_transforms
-        
-    
-        #self.connected_components = self.calculate_connected_componets()
-        
-        #self.dist_angle_from_anchor = self.get_distances_and_orientations()
-        #self.margin = self.get_margins()
+        #self.classDTs = self.calculate_distance_transforms()
+        self.classDTs = self.calculate_distance_transforms()
+        self.marginGrid = self.get_marginGrid()
+        self.marginFeat = self.get_marginFeat()
         #self.regionProps = self.get_RegionProps()
+         
 
-    
-    def get_class_masks(self):
-        class_masks = []
-        for target_class, anchor in self.class_dict.items():
-            class_mask = np.zeros_like(self.label_img)
-            class_mask[self.label_img == target_class] = 1
-        return class_masks
-       
-    def calculate_distance_transforms(self): 
-        distance_transforms= []
-        for class_mask in self.classMasks:
-            distance_transform = cv2.distanceTransform((class_mask* 255).astype(np.uint8), cv2.DIST_L2, 3) #neighborhood size 3x3
-            distance_transforms.append(distance_transform)        
-        return distance_transforms
-    
-    """def get_max_distance_transforms(self):
-         max_distances = [np.max(dt) for dt in self.distanceTransforms]
-         max_positions = [np.unravel_index(np.argmax(dt, axis=None), dt.shape) for dt in self.distance_transforms]
-         return [(i,j) for i,j in zip(max_distances, max_positions)]
-
-    def get_distance_from_anchor_to_border(self):
-        # distance from the anchor to the region border 
-        # using distance transform approach
-        distances = [] 
-        for i, (target_class, anchor) in enumerate(self.class_dict.items()):
-            print(i)
-            plt.imshow(self.distanceTransforms[i])
-            row, col = anchor
-            distances.append(self.distanceTransforms[i][row, col])  
-        return distances
-            
-  
-    def get_distances_and_orientations(self):
-        out = [] 
-        # get the contour of the component
-        for i, (target_class, anchor) in enumerate(self.class_dict.items()):
-            row, col = anchor
-            contours, _ = cv2.findContours(np.uint8(self.classMasks[i]), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)  
-            
-            # compute distance and angle from anchor to point in contour
-            distances_and_orientations = {}
-            for contour in contours:
-                for point in contour:
-                    x,y = point[0]
-                    # euclidean distance
-                    distance = np.linalg.norm(np.array([col, row]) - np.array([x, y]))
-                    # angle
-                    angle = np.arctan2(y - row, x - col)
-                    # Check if the angle is already in the dictionary
-                    if angle in distances_and_orientations:
-                        # If the distance for this angle is greater, update it
-                        if distance > distances_and_orientations[angle][0]:
-                            distances_and_orientations[angle] = (distance, angle)
-                    else:
-                        distances_and_orientations[angle] = (distance, angle)
-                   
-            out.append(list(distances_and_orientations.values()))    
-        return  out
-    
-    
-    
-    
-    def get_margins(self):
-        # the minimum distance between  the anchor and all the points in the border      
-        margin= []
+     def get_class_masks(self):
+         class_masks = []
+         for target_class, anchor in self.planeset.anchors.items():
+             class_mask = np.zeros_like(self.planeset.prediction )
+             class_mask[self.planeset.prediction  == target_class] = 1
+             class_masks.append(class_mask)
+         return class_masks
+     
+     def calculate_distance_transforms(self): 
+         distance_transforms= []
+         for class_mask in self.classMasks:
+             # using euclidean distance in distance transform 
+             distance_transform = cv2.distanceTransform((class_mask* 255).astype(np.uint8), cv2.DIST_L2, 3) #neighborhood size 3x3
+             distance_transforms.append(distance_transform)        
+         return distance_transforms  
+     
+     def get_max_distance_transforms(self):
+          max_distances = [np.max(dt) for dt in self.distanceTransforms]
+          #max_positions = [np.unravel_index(np.argmax(dt, axis=None), dt.shape) for dt in self.distanceTransforms]
+          #return [(i,j) for i,j in zip(max_distances, max_positions)]
+          return max_distances
         
-        distances = self.get_distances_and_orientations()
-        for class_list in distances:
-            min_distance = min(class_list, key=lambda x:x[0])
-            margin.append(min_distance[0])                
-        return margin 
+     
+     def get_marginGrid(self):
+         margin = []
+         for i, (target_class, anchor) in enumerate(self.planeset.anchors.items()): 
+             # get the coordenate of the DB
+             min_val_DT = np.unique(self.classDTs[i])[1]
+             min_coordinates = np.argwhere(self.classDTs[i] == min_val_DT) #this return y,x
+             
+             #Calculate distance from anchor to border
+             distances_and_orientations = {}
+             row, col = anchor
+             for y,x in min_coordinates:
+                 distance = np.linalg.norm(np.array([col, row]) - np.array([x, y]))
+                 angle = np.arctan2(y - row, x - col) 
+                 
+                 if angle in distances_and_orientations:
+                     # If the distance for this angle is greater, update it
+                     if distance > distances_and_orientations[angle][0]:
+                         distances_and_orientations[angle] = (distance, angle)
+                 else:
+                     distances_and_orientations[angle] = (distance, angle)
+            
+             #compute the margin as the minimum distance btw the anchor and all points in the BD
+             min_distance = min(distances_and_orientations.values(), key=lambda x: x[0])
+             min_distance_value = min_distance[0]
+             min_distance_angle = min_distance[1]
+             
+             margin.append(min_distance_value)
+             
+         return margin
+     
+     def get_marginFeat(self):
+         margin = []
+         for i, (target_class, anchor) in enumerate(self.planeset.anchors.items()): 
+     
+             # get the coordenates of the elements where the score is > th
+             score_mask = self.planeset.score * self.classMasks[i]
+             normalized_score_mask = (score_mask - np.min(score_mask)) / (np.max(score_mask) - np.min(score_mask))
+             filtered_coords = np.argwhere(normalized_score_mask > self.config.margin_th)
+             
+             #binary mask containing filtered coords
+             binary_mask = np.zeros_like(score_mask)
+             binary_mask[tuple(filtered_coords.T)] = 1
 
-    def get_RegionProps(self):
-        region_props_dict = {}
-        for i, (target_class, anchor) in enumerate(self.class_dict.items()):
-            component_mask = self.connected_components[i]
-            properties = regionprops(component_mask)
+             #get the border of filtered coords
+             binary_mask_dt = cv2.distanceTransform((binary_mask* 255).astype(np.uint8), cv2.DIST_L2, 3)
+             min_val_DT = np.unique(binary_mask_dt)[1]
+             min_coordinates = np.argwhere(self.classDTs[i] == min_val_DT) #this return y,x
+             
+             #get the feature vectors corresponding to the coordenates in the border
+             # row * num_colums + column
+             min_idx =[i*self.config.resolution+j for i,j in min_coordinates]
+             distances = [euclidean_distance(self.planeset.planeset[idx],self.planeset.triplet.features[i]) for idx in min_idx]
+         
+             #compute the margin as the minimum distance btw the anchor and all points in the BD_th
+             margin.append(np.min(distances) )
+         return margin
+     
+     def get_RegionProps(self):
+         region_props_dict = {}
+         for i, (target_class, anchor) in enumerate(self.planeset.anchors.items()):
+             component_mask = self.classMasks[i]
+             properties = regionprops(component_mask)
 
-            # Convert region properties to a dictionary
-            region_dict = {
-                'area': properties[0].area,
-                'centroid': properties[0].centroid,
-                'orientation': properties[0].orientation,
-                'major_axis': properties[0].major_axis_length,
-                'minor_axis': properties[0].minor_axis_length,
-            }
+             # Convert region properties to a dictionary
+             region_dict = {
+                 'area': properties[0].area,
+                 'centroid': properties[0].centroid,
+                 'orientation': properties[0].orientation,
+                 'major_axis': properties[0].major_axis_length,
+                 'minor_axis': properties[0].minor_axis_length,
+             }
 
-            region_props_dict[target_class] = region_dict
+             region_props_dict[target_class] = region_dict
 
-        return region_props_dict"""
+         return region_props_dict     
