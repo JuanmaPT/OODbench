@@ -13,6 +13,7 @@ from PIL import Image
 import itertools
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+import matplotlib.patches as patches
 
 from SomepalliFunctions import get_plane, plane_dataset
 
@@ -89,8 +90,6 @@ class Configuration:
         self.margin_th = margin_th
         
     
-
-
 def get_folders(path):
   """Returns a list of folders in the given path."""
   folders = []
@@ -178,9 +177,9 @@ class Triplet:
             # Extract features with the base model
             with torch.no_grad():
                 features = self.config.base_model(image)
-                print(features.size())
+                #print(features.size())
             
-            #print(features.shape)
+           
             feature_triplet.append(features)
 
         return feature_triplet
@@ -204,7 +203,7 @@ class Triplet:
                 _,pred_class= output.max(1)
                 pred_imgs.append(pred_class.item())
                 score_imgs.append(output.softmax(dim=-1).max().item())
-            print(pred_class.item())
+            #print(pred_class.item())
         return pred_imgs, score_imgs
         
     def checkPred(self):
@@ -321,6 +320,16 @@ class Planeset:
         else:
             ax1.set_title('Planset prediction')
         ax1.axis('off')
+        
+        #annotate anchors
+        keys = list(self.anchors.keys())
+        square1 = patches.Rectangle(self.anchors[keys[0]], width=1, height=1, fill=True, color='black') 
+        square2 = patches.Rectangle(self.anchors[keys[1]], width=1, height=1, fill=True, color='black')
+        square3 = patches.Rectangle(self.anchors[keys[2]], width=1, height=1, fill=True, color='black')
+    
+        ax1.add_patch(square1)
+        ax1.add_patch(square2)
+        ax1.add_patch(square3)
 
         with open( "imagenet_class_index.json", 'r') as json_file:
             data = json.load(json_file)
