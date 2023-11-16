@@ -18,14 +18,13 @@ from SomepalliFunctions import get_plane, plane_dataset
 
 class Configuration:
     def __init__(self, model, N, id_classes, resolution, margin_th):
+        self.modelType = model
      
-        if model == 'ResNet18':
-            path_to_weights = "C:/Users/Blanca/Documents/IPCV/TRDP/TRDP2/resnet18-5c106cde.pth"
-            
-            device = 'cuda' if torch.cuda.is_available() else 'cpu'
-            
+        if  self.modelType == 'ResNet18':
+           
             # model to make predictions over images
             self.model = models.resnet18(pretrained= True)
+            resnet_weights = self.model.state_dict()
             
             # base model as feature extractor
             self.base_model= nn.Sequential(*list(self.model.children())[:-1]) 
@@ -36,17 +35,42 @@ class Configuration:
                 nn.Flatten(),
                 nn.Linear(512, 1000)
             )
-            weights = torch.load(path_to_weights)
-            self.head_model[-1].load_state_dict({
-                'weight': weights['fc.weight'],
-                'bias': weights['fc.bias']
-            })
+           
+            # weighs for head model 
+            self.head_model[-1].weight.data = resnet_weights['fc.weight'].view(self.head_model[-1].weight.size())
+            self.head_model[-1].bias.data = resnet_weights['fc.bias'].view(self.head_model[-1].bias.size())
             self.head_model.eval()
             
-        if model == 'ResNet50':
-            pass
-        
+            
+            
+        if  self.modelType == 'ViT': 
+            # model to make predictions over images
+            self.model = models.vit_b_16(weights='IMAGENET1K_V1')
+            vit_weights= self.model.state_dict()
+            
+            # base model as feature extractor
+            self.base_model = nn.Sequential(*list(self.model.children())[:-2])  # Remove the last two layers (head and classifier)
+            self.base_model.eval()
+    
+            # classification head to make predictions over features
+            self.head_model = nn.Sequential(
+                nn.AdaptiveAvgPool2d(1),
+                nn.Flatten(),
+                nn.Linear(768, 1000)  
+            )
+            
+            
+            #print(self.model.state_dict().keys())
+            
+            #weights for head model
+            self.head_model[-1].weight.data = vit_weights['heads.head.weight'].view(self.head_model[-1].weight.size())
+            self.head_model[-1].bias.data = vit_weights['heads.head.bias'].view(self.head_model[-1].bias.size())
+            self.head_model.eval()
       
+       
+                  
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    
         self.N = N
         self.id_classes = id_classes
         
@@ -63,6 +87,8 @@ class Configuration:
                     
         self.resolution = resolution
         self.margin_th = margin_th
+        
+    
 
 
 def get_folders(path):
@@ -152,6 +178,7 @@ class Triplet:
             # Extract features with the base model
             with torch.no_grad():
                 features = self.config.base_model(image)
+                print(features.size())
             
             #print(features.shape)
             feature_triplet.append(features)
@@ -162,15 +189,14 @@ class Triplet:
         pred_imgs = []
         score_imgs = []
         for image in self.images:
-            # Preprocess the image to match the input requirements of the ResNet model 
             preprocess = transforms.Compose([
                 transforms.Resize(256),
                 transforms.CenterCrop(224),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
-            input_image = preprocess(image)
-            input_batch = input_image.unsqueeze(0)  # Add a batch dimension
+            image= preprocess(image)
+            input_batch = image.unsqueeze(0)  # Add a batch dimension
             
             # Make predictions using the model
             with torch.no_grad():
@@ -178,7 +204,7 @@ class Triplet:
                 _,pred_class= output.max(1)
                 pred_imgs.append(pred_class.item())
                 score_imgs.append(output.softmax(dim=-1).max().item())
-               
+            print(pred_class.item())
         return pred_imgs, score_imgs
         
     def checkPred(self):
