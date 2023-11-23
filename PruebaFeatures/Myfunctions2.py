@@ -18,7 +18,7 @@ import matplotlib.patches as patches
 from SomepalliFunctions import get_plane, plane_dataset
 
 class Configuration:
-    def __init__(self, model, N, id_classes, resolution, margin_th):
+    def __init__(self, model, N, id_classes, resolution):
         self.modelType = model
      
         if  self.modelType == 'ResNet18':
@@ -87,7 +87,7 @@ class Configuration:
                     print(key,value)
                     
         self.resolution = resolution
-        self.margin_th = margin_th
+       
         
     
 def get_folders(path):
@@ -217,6 +217,7 @@ class Planeset:
         self.planeset = self.computePlaneset()
         self.prediction, self.score = self.predict()
         self.anchors = self.getAnchors()
+        self.predictedClasses = np.unique(self.prediction)
     
        
     def computePlaneset(self):
@@ -269,23 +270,6 @@ class Planeset:
         
         return anchor_dict
     
-    """def getAnchors(self):
-        anchor_dict = {}
-        anchor_coords = []
-        # find the position by the one matching original prediciton
-        for y in range(self.config.resolution):
-            for x in range(self.config.resolution):
-                for i,pred in enumerate(self.triplet.prediction):
-                    if self.prediction[y,x] == pred and self.score[y,x] == self.triplet.score[i]:
-                        print(self.score[y,x])
-                        print(self.triplet.score[i])
-                        anchor_coords.append([x,y]) 
-       
-        for i,coords in enumerate(anchor_coords):
-            # create the dictionary 
-            anchor_dict[self.triplet.prediction[i]] = coords
-            
-            return anchor_dict"""
         
         
     def show(self, title=None):
@@ -318,14 +302,14 @@ class Planeset:
         if title:
             ax1.set_title(title)
         else:
-            ax1.set_title('Planset prediction')
+            ax1.set_title('Planeset prediction')
         ax1.axis('off')
         
-        #annotate anchors
+        #annotate anchors---------> modificar lo del tamaño
         keys = list(self.anchors.keys())
-        square1 = patches.Rectangle(self.anchors[keys[0]], width=1, height=1, fill=True, color='black') 
-        square2 = patches.Rectangle(self.anchors[keys[1]], width=1, height=1, fill=True, color='black')
-        square3 = patches.Rectangle(self.anchors[keys[2]], width=1, height=1, fill=True, color='black')
+        square1 = patches.Rectangle(self.anchors[keys[0]], width=0.1, height=0.1, fill=True, color='black') 
+        square2 = patches.Rectangle(self.anchors[keys[1]], width=0.1, height=0.1, fill=True, color='black')
+        square3 = patches.Rectangle(self.anchors[keys[2]], width=0.1, height=0.1, fill=True, color='black')
     
         ax1.add_patch(square1)
         ax1.add_patch(square2)
@@ -382,19 +366,21 @@ class PlanesetInfoExtractor:
         self.planeset= planeset
         self.config = config
         self.classMasks = self.get_class_masks()
+        self.margin = self.extractMargin()
         #self.classDTs = self.calculate_distance_transforms()
-        self.classDTs = self.calculate_distance_transforms()
-        self.marginGrid = self.get_marginGrid()
-        self.marginFeat = self.get_marginFeat()
+        #self.classDTs = self.calculate_distance_transforms()
+        #self.marginGrid = self.get_marginGrid()
+        #self.marginFeat = self.get_marginFeat()
         #self.regionProps = self.get_RegionProps()
          
-
+     
      def get_class_masks(self):
          class_masks = []
-         for target_class, anchor in self.planeset.anchors.items():
+         for target_class in self.planeset.predictedClasses:
              class_mask = np.zeros_like(self.planeset.prediction )
              class_mask[self.planeset.prediction  == target_class] = 1
              class_masks.append(class_mask)
+             
          return class_masks
      
      def calculate_distance_transforms(self): 
@@ -411,63 +397,29 @@ class PlanesetInfoExtractor:
           #return [(i,j) for i,j in zip(max_distances, max_positions)]
           return max_distances
         
-     
-     def get_marginGrid(self):
-         margin = []
-         for i, (target_class, anchor) in enumerate(self.planeset.anchors.items()): 
-             # get the coordenate of the DB
-             min_val_DT = np.unique(self.classDTs[i])[1]
-             min_coordinates = np.argwhere(self.classDTs[i] == min_val_DT) #this return y,x
-             
-             #Calculate distance from anchor to border
-             distances_and_orientations = {}
-             row, col = anchor
-             for y,x in min_coordinates:
-                 distance = np.linalg.norm(np.array([col, row]) - np.array([x, y]))
-                 angle = np.arctan2(y - row, x - col) 
-                 
-                 if angle in distances_and_orientations:
-                     # If the distance for this angle is greater, update it
-                     if distance > distances_and_orientations[angle][0]:
-                         distances_and_orientations[angle] = (distance, angle)
-                 else:
-                     distances_and_orientations[angle] = (distance, angle)
+    
+     def extractMargin(self):
+        "extract the margin as the min distance between the anchor and a different class prediction"        
+        margin = []
+        for i, (target_class, anchor) in enumerate(self.planeset.anchors.items()): 
+            loc = np.where(self.planeset.predictedClasses == target_class)[0][0] #index containg the anchor mask in classMasks lists
+            anchorMask= self.classMasks[loc]
+            restClassesMask = np.sum([self.classMasks[i] for i in range(len(self.classMasks)) if i != loc], axis=0)
             
-             #compute the margin as the minimum distance btw the anchor and all points in the BD
-             min_distance = min(distances_and_orientations.values(), key=lambda x: x[0])
-             min_distance_value = min_distance[0]
-             min_distance_angle = min_distance[1]
-             
-             margin.append(min_distance_value)
-             
-         return margin
-     
-     def get_marginFeat(self):
-         margin = []
-         for i, (target_class, anchor) in enumerate(self.planeset.anchors.items()): 
-     
-             # get the coordenates of the elements where the score is > th
-             score_mask = self.planeset.score * self.classMasks[i]
-             normalized_score_mask = (score_mask - np.min(score_mask)) / (np.max(score_mask) - np.min(score_mask))
-             filtered_coords = np.argwhere(normalized_score_mask > self.config.margin_th)
-             
-             #binary mask containing filtered coords
-             binary_mask = np.zeros_like(score_mask)
-             binary_mask[tuple(filtered_coords.T)] = 1
-
-             #get the border of filtered coords
-             binary_mask_dt = cv2.distanceTransform((binary_mask* 255).astype(np.uint8), cv2.DIST_L2, 3)
-             min_val_DT = np.unique(binary_mask_dt)[1]
-             min_coordinates = np.argwhere(self.classDTs[i] == min_val_DT) #this return y,x
-             
-             #get the feature vectors corresponding to the coordenates in the border
-             # row * num_colums + column
-             min_idx =[i*self.config.resolution+j for i,j in min_coordinates]
-             distances = [euclidean_distance(self.planeset.planeset[idx],self.planeset.triplet.features[i]) for idx in min_idx]
-         
-             #compute the margin as the minimum distance btw the anchor and all points in the BD_th
-             margin.append(np.min(distances) )
-         return margin
+            #get the contour of restClassesMask
+            distance_transform = cv2.distanceTransform((restClassesMask* 255).astype(np.uint8), cv2.DIST_L2, 3)
+            min_val_DT = np.unique(distance_transform)[1]
+            coords = np.argwhere(distance_transform == min_val_DT)  #contains the coordenates of the border of  restClassesMask
+            
+            #compute difference between anchor feature vector and feature vector corresponding to each coord in the grid
+            #get the feature vectors corresponding to the coordenates in the border as row * num_colums + column
+            coords_idx=[i*self.config.resolution+j for i,j in coords]
+            distances = [euclidean_distance(self.planeset.triplet.features[i],self.planeset.planeset[idx]) for idx in coords_idx]
+        
+            #compute the margin as the minimum distance btw the anchor and the points belonging to the other clases
+            margin.append(np.min(distances) )
+        return margin
+        
      
      def get_RegionProps(self):
          region_props_dict = {}
@@ -486,4 +438,58 @@ class PlanesetInfoExtractor:
 
              region_props_dict[target_class] = region_dict
 
-         return region_props_dict     
+         return region_props_dict  
+
+
+def min_max_normalize(distances):
+    min_value = min(distances)
+    max_value = max(distances)
+    normalized_distances = [(distance - min_value) / (max_value - min_value) for distance in distances]
+    return normalized_distances
+
+def calculate_pmf(distances):
+    normalized_distances = min_max_normalize(distances)
+    unique_values, count = np.unique(normalized_distances, return_counts=True)
+    #probabilities = count / len(count)
+    return unique_values, count
+
+def showClassPMF(marginClass, config):
+    with open("imagenet_class_index.json", 'r') as json_file:
+        data = json.load(json_file)
+    
+    fig, axs = plt.subplots(1, 3, figsize=(15, 5))
+    for i, margin in enumerate(marginClass):
+        unique_values, probabilities = calculate_pmf(margin)
+        axs[i].bar(unique_values, probabilities,width=.02, alpha=0.8)
+        axs[i].set_title(f'{config.labels[i]}: {data[str(config.labels[i])][1]}')
+        axs[i].set_xlabel('Normalized Margin')
+        axs[i].set_ylabel('Count')
+
+    plt.suptitle('Probability Mass Functions (PMFs) for Margin Classes')
+    plt.show()
+                
+                
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
