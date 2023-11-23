@@ -18,4 +18,3 @@ from .fcnet import *
 from .vit import *
 from .wideresnet import *
 from .mlpmixer import *
-from .ViT_pt_interpolate import *

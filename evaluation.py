@@ -353,7 +353,31 @@ def test_on_trainset(args, net, clean_trainloader, device):
     return 100.*correct/total, predicted_labels
 
 def decision_boundary(args, net, loader, device):
-    i = 1
+
+    if __name__ == '__main__':
+        torch.multiprocessing.freeze_support()  # Add this line
+        i = 1
+        net.eval()
+        correct = 0
+        total = 0
+        predicted_labels = []
+        with torch.no_grad():
+            for batch_idx, inputs in enumerate(loader):
+                inputs = inputs.to(device)
+                outputs = net(inputs)
+                for output in outputs:
+                    predicted_labels.append(output)
+                if args.dryrun:
+                    break
+                
+            i = i + 1
+        return predicted_labels
+    
+
+
+from utils import plot_tensor
+
+def decision_boundary_original(args, net, loader, device):
     net.eval()
     correct = 0
     total = 0
@@ -361,11 +385,10 @@ def decision_boundary(args, net, loader, device):
     with torch.no_grad():
         for batch_idx, inputs in enumerate(loader):
             inputs = inputs.to(device)
+            plot_tensor(inputs[0],f"Batch_number:{batch_idx}",f"results/inputs/tensor_{batch_idx}.png")
             outputs = net(inputs)
             for output in outputs:
                 predicted_labels.append(output)
             if args.dryrun:
                 break
-            
-        i = i + 1
     return predicted_labels

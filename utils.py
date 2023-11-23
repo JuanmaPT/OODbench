@@ -20,6 +20,93 @@ import pickle
 import matplotlib
 matplotlib.use('Agg')
 
+
+
+from torch.nn.functional import grid_sample
+
+
+# Function to obtain original images from grid points
+def get_original_images(base_img, vec1, vec2, grid):
+    # Extract grid coordinates
+    x_coords, y_coords = grid
+
+    # Calculate coordinates in the original image space
+    x_coords_orig = base_img + x_coords * vec1.unsqueeze(2) + y_coords * vec2.unsqueeze(2)
+
+    # Interpolate image values
+    img_values = grid_sample(
+        x_coords_orig.unsqueeze(0),
+        torch.stack([x_coords, y_coords], dim=-1).unsqueeze(0),
+        mode='bilinear',  # Assuming bilinear interpolation
+        padding_mode='border'  # Adjust padding mode as needed
+    ).squeeze(0)
+
+    return img_values
+
+
+
+def plot_tensor_info(tensor, title='', save_path=None):
+    # Convert tensor to NumPy array
+    img_array = tensor.numpy()
+
+    # Transpose if needed (assuming channels, height, width)
+    img_array = np.transpose(img_array, (1, 2, 0))
+
+
+    # Create a figure with two subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+
+    # Plot the image
+    ax1.imshow(img_array)
+    ax1.set_title(title)
+    ax1.axis('off')
+
+    # Display information about the tensor
+    tensor_info = f"Shape: {tensor.shape}\n"
+    tensor_info += f"Min Value: {np.min(img_array):.4f}\n"
+    tensor_info += f"Max Value: {np.max(img_array):.4f}\n"
+    tensor_info += f"Mean: {np.mean(img_array):.4f}\n"
+    tensor_info += f"Std: {np.std(img_array):.4f}"
+
+    ax2.text(0.1, 0.5, tensor_info, va='center', fontfamily='monospace', fontsize=10)
+
+    # Save or show the figure
+    if save_path:
+        plt.savefig(save_path)
+    else:
+        plt.show()
+
+def plot_tensor(tensor, title='', save_path=None):
+    # Convert tensor to NumPy array
+    img_array = tensor.numpy()
+
+    # Transpose if needed (assuming channels, height, width)
+    img_array = np.transpose(img_array, (1, 2, 0))
+
+
+    # Create a figure with two subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+
+    # Plot the image
+    ax1.imshow(img_array)
+    ax1.set_title(title)
+    ax1.axis('off')
+
+    # Display information about the tensor
+    tensor_info = f"Shape: {tensor.shape}\n"
+    tensor_info += f"Min Value: {np.min(img_array):.4f}\n"
+    tensor_info += f"Max Value: {np.max(img_array):.4f}\n"
+    tensor_info += f"Mean: {np.mean(img_array):.4f}\n"
+    tensor_info += f"Std: {np.std(img_array):.4f}"
+
+    ax2.text(0.1, 0.5, tensor_info, va='center', fontfamily='monospace', fontsize=10)
+
+    # Save or show the figure
+    if save_path:
+        plt.savefig(save_path)
+    else:
+        plt.show()
+
 def simple_lapsed_time(text, lapsed):
     hours, rem = divmod(lapsed, 3600)
     minutes, seconds = divmod(rem, 60)

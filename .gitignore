@@ -1,4 +1,10 @@
+*.pyc
 *.jpg
 *.JPEG
 *.pth
 *.npy
+*.PNG
+*.png
+*.pyc
+*
+*38.pyc

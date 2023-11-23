@@ -44,15 +44,6 @@ def get_model(args, device):
         net = FCNet()
     elif args.net in ['ViT4','vit']:
         net = ViT4()
-    elif args.net == 'ViT_pt_interpolate':
-        net = ViT_pt_interpolate()
-    elif args.net == 'ViT_npt_interpolate':
-        net = ViT_pt_interpolate(pretrained=False)
-    elif args.net == 'ViT_pt':
-    # from https://github.com/kentaroy47/vision-transformers-cifar10/blob/main/train_cifar10.py
-        import timm
-        net = timm.create_model("vit_small_patch16_224", pretrained=True)
-        net.head = nn.Linear(net.head.in_features, 10)
     elif args.net == 'MLPMixer4':
         net = MLPMixer4()
     elif args.net == 'MLPMixer_pt':

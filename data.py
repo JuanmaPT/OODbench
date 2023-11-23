@@ -189,17 +189,25 @@ def get_plane(img1, img2, img3):
     #second_coef = torch.dot(b_orthog.flatten(), b.flatten()) / torch.dot(b_orthog.flatten(), b_orthog.flatten())
     coords = [[0,0], [a_norm,0], [first_coef, second_coef]]
 
+
+    #Understanding the output - JMPT
+    
+
+
     return a, b_orthog, b, coords
 
-
+#plane_dataset(images[0], a, b_orthog, coords, resolution=args.resolution, range_l=args.range_l, range_r=args.range_r)
 class plane_dataset(torch.utils.data.Dataset):
     def __init__(self, base_img, vec1, vec2, coords, resolution=0.2,
                     range_l=.1, range_r=.1):
         
+        range_l = 0.2
+        range_r = 0.2
+        
         
         self.base_img = base_img
-        self.vec1 = vec1
-        self.vec2 = vec2
+        self.vec1 = vec1 #a
+        self.vec2 = vec2 #b_orthogonal
         self.coords = coords
         self.resolution = resolution
         x_bounds = [coord[0] for coord in coords]
@@ -216,6 +224,11 @@ class plane_dataset(torch.utils.data.Dataset):
         list1 = torch.linspace(self.bound1[0] - range_l*len1, self.bound1[1] + range_r*len1, int(resolution))
         list2 = torch.linspace(self.bound2[0] - range_l*len2, self.bound2[1] + range_r*len2, int(resolution))
 
+        grid = torch.meshgrid([list1,list2])
+
+        print('Init plane_dataset')
+        print('x_bounds: ',x_bounds)
+        print('y_bounds: ',y_bounds)
 
         """"
         # Assuming you have the coordinates of the three images as coords
@@ -249,7 +262,7 @@ class plane_dataset(torch.utils.data.Dataset):
 
 
         """
-        grid = torch.meshgrid([list1,list2])
+        
 
         self.coefs1 = grid[0].flatten()
         self.coefs2 = grid[1].flatten()
@@ -261,11 +274,12 @@ class plane_dataset(torch.utils.data.Dataset):
         return self.base_img + self.coefs1[idx] * self.vec1 + self.coefs2[idx] * self.vec2
 
 def make_planeloader(images, args):
+    print('--->make_planeloader')
     a, b_orthog, b, coords = get_plane(images[0], images[1], images[2])
 
     planeset = plane_dataset(images[0], a, b_orthog, coords, resolution=args.resolution, range_l=args.range_l, range_r=args.range_r)
 
 
     planeloader = torch.utils.data.DataLoader(
-        planeset, batch_size=args.batch_size_planeloader, shuffle=False, num_workers=2)
+        planeset, batch_size=args.batch_size_planeloader, shuffle=False, num_workers=0)
     return planeloader
