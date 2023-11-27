@@ -134,11 +134,7 @@ class Planeset:
 
         ax2.set_xlim(0, 1)
         ax2.set_ylim(0, 1)
-        ax2.axis('off')
-
-        # Add text annotations for 0 and 1 below the bars
-        #ax2.text(0, 0.25, '0', ha='center', va='center', fontsize=7)
-        #ax2.text(0.5, 0.25, '1', ha='center', va='center', fontsize= 7) 
+        ax2.axis('off') 
         ax2.text(0.45, 0.85, 'Prediction Scores colorbar', ha='center', va='center', fontsize= 9)
       
         
@@ -149,5 +145,9 @@ class Planeset:
             ax3.imshow(img)
             ax3.axis('off')
             ax3.set_title(f"True class: {self.config.labels[i]}, {data[str(self.config.labels[i])][1]}\nPrediction:  {self.triplet.prediction[i]}, {data[str(self.triplet.prediction[i])][1]} \nScore:  {self.triplet.score[i]}")
-
+        
+        
+        if title is None:
+            title = f"{self.config.dataset} | {self.config.modelType}"
+        fig.suptitle(title, y=1.05, fontsize=16)
         plt.show()
