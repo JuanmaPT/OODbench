@@ -11,18 +11,32 @@ import itertools
 import matplotlib.pyplot as plt
 
 
-
 class Configuration:
-    def __init__(self, model, N, id_classes, resolution):
+    def __init__(self, model, N, id_classes, resolution, dataset):
         self.modelType = model
+        self.N = N
+        self.id_classes = id_classes
+        self.resolution = resolution
+        self.dataset = dataset
+      
+        with open( "imagenet_class_index.json", 'r') as json_file:
+            data = json.load(json_file)
+        
+        self.labels = []
+        for search_id in id_classes:
+            for key, value in data.items():
+                if search_id in value:
+                    self.labels.append(int(key))
+                    print(key,value)
      
+       
         if  self.modelType == 'ResNet18':
            
             # model to make predictions over images
             self.model = models.resnet18(pretrained= True)
             resnet_weights = self.model.state_dict()
             
-            # base model as feature extractor
+            # base model as feature extractor: remove classification head
             self.base_model= nn.Sequential(*list(self.model.children())[:-1]) 
             self.base_model.eval()
             
@@ -41,24 +55,13 @@ class Configuration:
             
         if self.modelType == 'ViT':
             # model to make predictions over images
-            self.model = timm.create_model('vit_base_patch16_224', pretrained=True)
+            self.model = models.vit_b_16(pretrained= True)
             vit_weights = self.model.state_dict()
       
             
-            #for key in vit_weights:
-                #print(key)
-            
-            # base model as feature extractor
-            base_model_layers = [
-                self.model.patch_embed,
-                self.model.pos_drop,
-                self.model.norm_pre,
-                self.model.blocks,
-                self.model.norm,
-                self.model.fc_norm
-            ]
-            
-            self.base_model = nn.Sequential(*base_model_layers)
+            # base model as feature extractor: remove classification head
+            self.base_model = models.vit_b_16(weights='IMAGENET1K_V1')
+            self.base_model.heads.head = nn.Identity()
             self.base_model.eval()
 
             # Classification head for making predictions over features
@@ -67,32 +70,14 @@ class Configuration:
             )
 
             # Set weights for the head model
-            self.head_model[-1].weight.data = vit_weights['head.weight'].view(self.head_model[-1].weight.size())
-            self.head_model[-1].bias.data = vit_weights['head.bias'].view(self.head_model[-1].bias.size())
+            self.head_model[-1].weight.data = vit_weights['heads.head.weight'].view(self.head_model[-1].weight.size())
+            self.head_model[-1].bias.data = vit_weights['heads.head.bias'].view(self.head_model[-1].bias.size())
             self.head_model.eval()
       
-       
-                  
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+           #device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
-        self.N = N
-        self.id_classes = id_classes
         
-        # return the class for the given id
-        with open( "imagenet_class_index.json", 'r') as json_file:
-            data = json.load(json_file)
-        
-        self.labels = []
-        for search_id in id_classes:
-            for key, value in data.items():
-                if search_id in value:
-                    self.labels.append(int(key))
-                    print(key,value)
-                    
-        self.resolution = resolution
-       
-        
-    
+
 def get_folders(path):
   """Returns a list of folders in the given path."""
   folders = []
@@ -102,7 +87,9 @@ def get_folders(path):
   return folders
 
 
-def getCombiFromDBoptimal(config, db_path):
+def getCombiFromDBoptimal(config):
+    rootDir = "C:/Users/Blanca/Documents/IPCV/TRDP/TRDP2/smallDatasets/"
+    db_path = rootDir + config.dataset
     filenames_combinations = []
 
     # Get the file paths of the images in each folder
