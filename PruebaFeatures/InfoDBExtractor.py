@@ -41,23 +41,30 @@ class PlanesetInfoExtractor:
      def extractMargin(self):
         "extract the margin as the min distance between the anchor and a different class prediction"        
         margin = []
-        for i, (target_class, anchor) in enumerate(self.planeset.anchors.items()): 
-            loc = np.where(self.planeset.predictedClasses == target_class)[0][0] #index containg the anchor mask in classMasks lists
-            anchorMask= self.classMasks[loc]
-            restClassesMask = np.sum([self.classMasks[i] for i in range(len(self.classMasks)) if i != loc], axis=0)
-            
-            #get the contour of restClassesMask
-            distance_transform = cv2.distanceTransform((restClassesMask* 255).astype(np.uint8), cv2.DIST_L2, 3)
-            min_val_DT = np.unique(distance_transform)[1]
-            coords = np.argwhere(distance_transform == min_val_DT)  #contains the coordenates of the border of  restClassesMask
-            
-            #compute difference between anchor feature vector and feature vector corresponding to each coord in the grid
-            #get the feature vectors corresponding to the coordenates in the border as row * num_colums + column
-            coords_idx=[i*self.config.resolution+j for i,j in coords]
-            distances = [euclidean_distance(self.planeset.triplet.features[i],self.planeset.planeset[idx]) for idx in coords_idx]
-        
-            #compute the margin as the minimum distance btw the anchor and the points belonging to the other clases
-            margin.append(np.min(distances) )
+        coords = self.planeset.planeset.coords
+        x = self.planeset.planeset.coefs1.cpu().numpy()
+        y = self.planeset.planeset.coefs2.cpu().numpy()
+
+        # Loop over anchors
+        for i, (target_class, anchor) in enumerate(self.planeset.anchors.items()):
+            coord = coords[i]  # Coordinate of current anchor
+
+            # Get x, y positions and predicted classes
+            x_positions = torch.from_numpy(x.flatten())
+            y_positions = torch.from_numpy(y.flatten())
+            predicted_classes = self.planeset.prediction.flatten()
+
+            # Find positions where predicted class is different from anchor's target class
+            different_class_positions = torch.nonzero(predicted_classes != target_class)
+
+            # Calculate distances between anchor and positions with different class
+            distances = torch.sqrt((x_positions[different_class_positions] - coord[0]) ** 2 +
+                                (y_positions[different_class_positions] - coord[1]) ** 2)
+
+            # Find the minimum distance
+            min_distance = torch.min(distances)
+            margin.append(min_distance)
+
         return margin
         
      
