@@ -3,7 +3,10 @@ from TripletExtractor import Triplet
 from PlanesetExtractor import Planeset
 from InfoDBExtractor import PlanesetInfoExtractor
 
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 import os
 if os.getlogin() == 'Blanca':
     dir_datasets = "C:/Users/Blanca/Documents/IPCV/TRDP/TRDP2/smallDatasets/"
@@ -11,9 +14,17 @@ if os.getlogin() == 'juanm':
     dir_datasets = "C:/Users/juanm/Documents/IPCV_3/TRDP/smallDatasets/"
 datasets = get_folders(dir_datasets)
 
+
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+
 c1, c2, c3  = "n01498041","n01534433","n01687978",    #  note:escribir en orden alfabetico 
+<<<<<<< Updated upstream
 config = Configuration(model= 'ResNet18', 
                        N = 3, 
+=======
+config = Configuration( model= 'ResNet18', 
+                       N = 1, 
+>>>>>>> Stashed changes
                        id_classes= [c1,c2,c3],
                        resolution= 10,
                        )
