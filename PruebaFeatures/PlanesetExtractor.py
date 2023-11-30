@@ -66,18 +66,22 @@ class Planeset:
     
         
         
-    def show(self, title=None):
+    def show(self,cmap,color_dict, title=None):
+
+        # Asigning the new predicted classes
         unique_classes = np.unique(self.prediction)   
         num_classes = len(unique_classes)
 
         # Create a color map with black background
         color_map = np.zeros((self.prediction.shape[0], self.prediction.shape[1], 3))
+        color_map_flat = np.zeros((self.prediction.shape[0], self.prediction.shape[1], 3))
 
         # Generate colors for each class
         #cmap = plt.get_cmap('rainbow')
         #colors = [to_rgba(cmap(i))[:3] for i in np.linspace(0, 1, num_classes)]
         custom_colors = get_custom_colors(num_classes)
 
+        """
         # Assign colors based on prediction scores
         for class_label, color in zip(unique_classes, custom_colors):
             class_indices = np.where(self.prediction == class_label)
@@ -87,9 +91,38 @@ class Planeset:
             
             for idx, score in zip(zip(*class_indices), class_scores):
                 color_map[idx] = np.array(color) * score # Adjust color intensity based on the prediction score
+        """
+         # Assign colors based on prediction scores
+        for class_label in unique_classes:
+            class_indices = np.where(self.prediction == class_label)
+            class_scores = self.score[class_indices]
 
+            for idx, score in zip(zip(*class_indices), class_scores):
+                color = color_dict[class_label][0:3]  # Get color from the provided dictionary
+                color_map[idx] = np.array(color) * score   # Adjust color intensity based on the prediction score
+                color_map_flat[idx] = np.array(color)
+
+
+        ##########################################################################33
+        with open( "imagenet_class_index.json", 'r') as json_file:
+            data = json.load(json_file)
+
+        keys = list(self.anchors.keys())
+        if self.config.resolution == 10:
+            size= 0.1
+        if self.config.resolution == 50:
+            size= 1
+
+        square1 = patches.Rectangle(self.anchors[keys[0]], width=size, height=size, fill=True, color='black') 
+        square2 = patches.Rectangle(self.anchors[keys[1]], width=size, height=size, fill=True, color='black')
+        square3 = patches.Rectangle(self.anchors[keys[2]], width=size, height=size, fill=True, color='black')
         
-        fig, (ax1, ax2, ax3_1, ax3_2, ax3_3) = plt.subplots(1, 5, figsize=(20, 5))
+
+        fig = plt.figure()
+        #fig, (ax1,ax1_1, ax2, ax3_1, ax3_2, ax3_3) = plt.subplots(2, 3, figsize=(20, 5))
+        gs = fig.add_gridspec(2, 3, hspace=0, wspace=0)
+        (ax1, ax1_1, ax2), (ax3_1, ax3_2, ax3_3) = gs.subplots(sharex='col', sharey='row')
+
 
         # Display the color map
         im = ax1.imshow(color_map)
@@ -98,27 +131,18 @@ class Planeset:
         else:
             ax1.set_title('Planeset prediction')
         ax1.axis('off')
+
+        #Display colormap unaltered
         
-       
-        keys = list(self.anchors.keys())
-        if self.config.resolution == 10:
-            size= 0.1
-        if self.config.resolution == 50:
-            size= 1
-        
-        square1 = patches.Rectangle(self.anchors[keys[0]], width=size, height=size, fill=True, color='black') 
-        square2 = patches.Rectangle(self.anchors[keys[1]], width=size, height=size, fill=True, color='black')
-        square3 = patches.Rectangle(self.anchors[keys[2]], width=size, height=size, fill=True, color='black')
     
         ax1.add_patch(square1)
         ax1.add_patch(square2)
         ax1.add_patch(square3)
 
-        with open( "imagenet_class_index.json", 'r') as json_file:
-            data = json.load(json_file)
+        ax1_1.imshow(color_map_flat)
+
         
-        
-        # Create a horizontal color bar for each class (going from less bright to more bright)
+        # Create a horizontal color bar for each class (going from dark to bright)
         bar_height = 0.05  # Adjust the height based on your preference
         space_between_bars = 0.02  # Adjust the space between bars
         total_height = num_classes * (bar_height + space_between_bars) - space_between_bars
@@ -151,3 +175,86 @@ class Planeset:
             ax3.set_title(f"True class: {self.config.labels[i]}, {data[str(self.config.labels[i])][1]}\nPrediction:  {self.triplet.prediction[i]}, {data[str(self.triplet.prediction[i])][1]} \nScore:  {self.triplet.score[i]}")
 
         plt.show()
+
+
+    def show_simple(self,cmap,color_dict, title=None):
+
+        # Asigning the new predicted classes
+        unique_classes = np.unique(self.prediction)   
+        num_classes = len(unique_classes)
+
+        # Create a color map with black background
+        color_map = np.zeros((self.prediction.shape[0], self.prediction.shape[1], 3))
+        color_map_flat = np.zeros((self.prediction.shape[0], self.prediction.shape[1], 3))
+
+        # Generate colors for each class
+        #cmap = plt.get_cmap('rainbow')
+        #colors = [to_rgba(cmap(i))[:3] for i in np.linspace(0, 1, num_classes)]
+        custom_colors = get_custom_colors(num_classes)
+
+        """
+        # Assign colors based on prediction scores
+        for class_label, color in zip(unique_classes, custom_colors):
+            class_indices = np.where(self.prediction == class_label)
+            class_scores = self.score[class_indices]
+            
+            #normalized_scores = (class_scores - np.min(class_scores)) / (np.max(class_scores) - np.min(class_scores))
+            
+            for idx, score in zip(zip(*class_indices), class_scores):
+                color_map[idx] = np.array(color) * score # Adjust color intensity based on the prediction score
+        """
+         # Assign colors based on prediction scores
+        for class_label in unique_classes:
+            class_indices = np.where(self.prediction == class_label)
+            class_scores = self.score[class_indices]
+
+            for idx, score in zip(zip(*class_indices), class_scores):
+                color = color_dict[class_label][0:3]  # Get color from the provided dictionary
+                color_map[idx] = np.array(color) * score   # Adjust color intensity based on the prediction score
+                color_map_flat[idx] = np.array(color)
+
+
+        ##########################################################################33
+        with open( "imagenet_class_index.json", 'r') as json_file:
+            data = json.load(json_file)
+
+        keys = list(self.anchors.keys())
+        if self.config.resolution == 10:
+            size= 0.1
+        if self.config.resolution == 50:
+            size= 1
+
+        square1 = patches.Rectangle(self.anchors[keys[0]], width=size, height=size, fill=True, color='black') 
+        square2 = patches.Rectangle(self.anchors[keys[1]], width=size, height=size, fill=True, color='black')
+        square3 = patches.Rectangle(self.anchors[keys[2]], width=size, height=size, fill=True, color='black')
+        
+
+        fig = plt.figure()
+        gs = fig.add_gridspec(1, 2, hspace=0, wspace=0)
+        (ax1, ax2) = gs.subplots(sharex='col', sharey='row')
+        gs = fig.add_gridspec(2, 3, hspace=0, wspace=0)
+  
+
+
+        # Display the color map
+        im = ax1.imshow(color_map)
+        if title:
+            ax1.set_title(title)
+        else:
+            ax1.set_title('Planeset prediction')
+        ax1.axis('off')
+
+        #Display colormap unaltered
+        
+    
+        ax1.add_patch(square1)
+        ax1.add_patch(square2)
+        ax1.add_patch(square3)
+
+        ax2.imshow(color_map_flat)
+
+        cbar = plt.colorbar(cax, ticks=np.arange(NdifferentValues))
+        cbar.ax.set_yticklabels([class_labels_dict[value] for value in unique_classes])
+
+        plt.show()
+        print('Representation completed!')

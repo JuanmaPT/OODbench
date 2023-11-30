@@ -9,7 +9,63 @@ import os
 from PIL import Image
 import itertools
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 
+
+def init_colormap(classes, base_cmap='viridis'):
+    """
+    Create a custom colormap for a list of classes.
+
+    Parameters:
+        classes (list): List of unique classes for which colors need to be assigned.
+        base_cmap (str): Base colormap to use for interpolation.
+
+    Returns:
+        cmap (ListedColormap): Custom colormap.
+        color_dict (dict): Dictionary mapping classes to colors.
+    """
+    # Generate a color for each number using a perceptually uniform colormap
+    colors = plt.cm.get_cmap(base_cmap, len(classes))
+
+    # Create a colormap
+    cmap = ListedColormap([colors(i) for i in range(len(classes))])
+
+    # Create a dictionary to store the mapping between classes and colors
+    color_dict = {number: cmap(i) for i, number in enumerate(classes)}
+
+    return cmap, color_dict
+
+def add_new_classes_to_colormap(existing_cmap, existing_color_dict, new_classes):
+    """
+    Add new classes to an existing colormap without modifying previous values.
+
+    Parameters:
+        existing_cmap (ListedColormap): Existing colormap.
+        existing_color_dict (dict): Existing mapping between classes and colors.
+        new_classes (list): List of new classes to be added.
+        base_cmap (str): Base colormap to use for interpolation.
+
+    Returns:
+        updated_cmap (ListedColormap): Updated colormap.
+        updated_color_dict (dict): Updated mapping between classes and colors.
+    """
+    # Filter out classes that are already in the colormap
+    unique_new_classes = [num for num in new_classes if num not in existing_color_dict]
+
+    if not unique_new_classes:
+        # If all new classes are already in the colormap, return the existing colormap
+        return existing_cmap, existing_color_dict
+
+    # Shuffle the existing colors to get random colors
+    np.random.shuffle(existing_cmap.colors)
+
+    # Update the colormap
+    updated_cmap = ListedColormap(list(existing_cmap.colors) + existing_cmap.colors[:len(unique_new_classes)])
+
+    # Update the dictionary with randomly assigned colors
+    updated_color_dict = {**existing_color_dict, **{number: updated_cmap(i + len(existing_color_dict)) for i, number in enumerate(unique_new_classes)}}
+
+    return updated_cmap, updated_color_dict
 
 
 class Configuration:

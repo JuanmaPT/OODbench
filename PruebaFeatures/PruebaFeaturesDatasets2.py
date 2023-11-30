@@ -4,7 +4,11 @@ from PlanesetExtractor import Planeset
 from InfoDBExtractor import PlanesetInfoExtractor
 
 
-dir_datasets = "C:/Users/Blanca/Documents/IPCV/TRDP/TRDP2/smallDatasets/"
+import os
+if os.getlogin() == 'Blanca':
+    dir_datasets = "C:/Users/Blanca/Documents/IPCV/TRDP/TRDP2/smallDatasets/"
+if os.getlogin() == 'juanm':
+    dir_datasets = "C:/Users/juanm/Documents/IPCV_3/TRDP/smallDatasets/"
 datasets = get_folders(dir_datasets)
 
 c1, c2, c3  = "n01498041","n01534433","n01687978",    #  note:escribir en orden alfabetico 
@@ -24,10 +28,19 @@ planesets = [Planeset(Triplet(pathImgs, config), config) for pathImgs in filenam
 
 #%% visualization example 
 #for the first image visualize all the triplet combination
+
+first = True
+
 path_img_to_show = filenamesCombis[0][0]
 for planeset in planesets:
     if planeset.triplet.pathImgs[0] == path_img_to_show:
-        planeset.show()
+        unique_classes = np.unique(planeset.prediction) 
+        if first:
+            cmap, color_dict = init_colormap(unique_classes)
+            first = False
+        else:
+            cmap, color_dict = add_new_classes_to_colormap(cmap, color_dict, unique_classes)
+        planeset.show_simple(cmap,color_dict)
 
 #%%
 print("Extracting DB descriptors...")
