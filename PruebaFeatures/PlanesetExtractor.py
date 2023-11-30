@@ -3,6 +3,7 @@ from utils import *
 from SomepalliFunctions import get_plane, plane_dataset
 import matplotlib.image as mpimg
 import matplotlib.patches as patches
+from matplotlib.lines import Line2D
 
 class Planeset:
     def __init__(self, triplet, config):
@@ -177,84 +178,79 @@ class Planeset:
         plt.show()
 
 
-    def show_simple(self,cmap,color_dict, title=None):
-
-        # Asigning the new predicted classes
-        unique_classes = np.unique(self.prediction)   
+    def show_simple(self, cmap, color_dict, title=None):
+        unique_classes = np.unique(self.prediction)
         num_classes = len(unique_classes)
 
-        # Create a color map with black background
-        color_map = np.zeros((self.prediction.shape[0], self.prediction.shape[1], 3))
-        color_map_flat = np.zeros((self.prediction.shape[0], self.prediction.shape[1], 3))
+        color_matrix = np.zeros((self.prediction.shape[0], self.prediction.shape[1], 3))
+        color_matrix_flat = np.zeros((self.prediction.shape[0], self.prediction.shape[1], 3))
 
-        # Generate colors for each class
-        #cmap = plt.get_cmap('rainbow')
-        #colors = [to_rgba(cmap(i))[:3] for i in np.linspace(0, 1, num_classes)]
-        custom_colors = get_custom_colors(num_classes)
-
-        """
-        # Assign colors based on prediction scores
-        for class_label, color in zip(unique_classes, custom_colors):
-            class_indices = np.where(self.prediction == class_label)
-            class_scores = self.score[class_indices]
-            
-            #normalized_scores = (class_scores - np.min(class_scores)) / (np.max(class_scores) - np.min(class_scores))
-            
-            for idx, score in zip(zip(*class_indices), class_scores):
-                color_map[idx] = np.array(color) * score # Adjust color intensity based on the prediction score
-        """
-         # Assign colors based on prediction scores
         for class_label in unique_classes:
             class_indices = np.where(self.prediction == class_label)
             class_scores = self.score[class_indices]
-
             for idx, score in zip(zip(*class_indices), class_scores):
-                color = color_dict[class_label][0:3]  # Get color from the provided dictionary
-                color_map[idx] = np.array(color) * score   # Adjust color intensity based on the prediction score
-                color_map_flat[idx] = np.array(color)
+                color = np.array(color_dict[class_label][0:3]) * score
+                color_matrix[idx] = color
+                color_matrix_flat[idx] = np.array(color_dict[class_label][0:3])
 
+        keys = list(self.anchors.keys())
+        size = 0.1 if self.config.resolution == 10 else 1
 
-        ##########################################################################33
+        fig, axes = plt.subplots(2, 3, figsize=(10, 6))
+
+        axes[0, 0].imshow(color_matrix)
+        axes[0, 0].set_title(title if title else 'Planeset prediction')
+        axes[0, 0].axis('off')
+
+        for key in keys:
+            square = patches.Rectangle(self.anchors[key], width=size, height=size, fill=True, color='black')
+            axes[0, 0].add_patch(square)
+
+        axes[0, 1].imshow(color_matrix_flat, cmap='gray')
+        axes[0, 1].set_title('Flat Prediction')
+        axes[0, 1].axis('off')
+
+        with open('imagenet1klabels.txt', 'r') as file:
+            class_labels_dict = eval(file.read())
+
+        legend_elements = [Line2D([0], [0], marker='o', color='w', label=class_labels_dict[class_label][0:13],
+                                markerfacecolor=np.array(color_dict[class_label][0:3]), markersize=10)
+                        for class_label in unique_classes]
+
+        axes[0, 1].legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5), ncol=1, borderaxespad=0.5)
+        axes[0, 2].axis('off')
+
         with open( "imagenet_class_index.json", 'r') as json_file:
             data = json.load(json_file)
 
-        keys = list(self.anchors.keys())
-        if self.config.resolution == 10:
-            size= 0.1
-        if self.config.resolution == 50:
-            size= 1
+        # Visualize triplet of images in the second row
+        for i, path in enumerate(self.triplet.pathImgs):
+            img = mpimg.imread(path)
+            
+            # Plot the image
+            axes[1, i].imshow(img)
+            axes[1, i].axis('off')
+            
+            # Add circle in the top-left corner
+            true_class = self.config.labels[i]
+            try:
+                color = np.array(color_dict[true_class][0:3])
+                circle = patches.Circle((0.05, 0.95), radius=0.03, transform=axes[1, i].transAxes, edgecolor=color, facecolor='none', lw=2)
+                axes[1, i].add_patch(circle)
+            except:
+                print("Missing value")
+            
+            
+            # Set title
+            axes[1, i].set_title(f"True class: {self.config.labels[i]}, {data[str(self.config.labels[i])][1]}\n...
+                                 Prediction: {self.triplet.prediction[i]}, {data[str(self.triplet.prediction[i])][1]}\n...
+                                 Score: {self.triplet.score[i]}", fontsize='small', y=-0.35)
 
-        square1 = patches.Rectangle(self.anchors[keys[0]], width=size, height=size, fill=True, color='black') 
-        square2 = patches.Rectangle(self.anchors[keys[1]], width=size, height=size, fill=True, color='black')
-        square3 = patches.Rectangle(self.anchors[keys[2]], width=size, height=size, fill=True, color='black')
-        
-
-        fig = plt.figure()
-        gs = fig.add_gridspec(1, 2, hspace=0, wspace=0)
-        (ax1, ax2) = gs.subplots(sharex='col', sharey='row')
-        gs = fig.add_gridspec(2, 3, hspace=0, wspace=0)
-  
-
-
-        # Display the color map
-        im = ax1.imshow(color_map)
-        if title:
-            ax1.set_title(title)
-        else:
-            ax1.set_title('Planeset prediction')
-        ax1.axis('off')
-
-        #Display colormap unaltered
-        
-    
-        ax1.add_patch(square1)
-        ax1.add_patch(square2)
-        ax1.add_patch(square3)
-
-        ax2.imshow(color_map_flat)
-
-        cbar = plt.colorbar(cax, ticks=np.arange(NdifferentValues))
-        cbar.ax.set_yticklabels([class_labels_dict[value] for value in unique_classes])
+        # Add arrows from the anchor subplots to the anchor squares
+        for i, key in enumerate(keys):
+            x_center, y_center = self.anchors[key][0] + size / 2, self.anchors[key][1] + size / 2
+            axes[0, 2].annotate('', xy=(x_center, y_center), xytext=(0.5, 0.5),
+                                arrowprops=dict(facecolor='black', shrink=0.05))
 
         plt.show()
         print('Representation completed!')

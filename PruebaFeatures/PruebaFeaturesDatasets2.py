@@ -3,10 +3,6 @@ from TripletExtractor import Triplet
 from PlanesetExtractor import Planeset
 from InfoDBExtractor import PlanesetInfoExtractor
 
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 import os
 if os.getlogin() == 'Blanca':
     dir_datasets = "C:/Users/Blanca/Documents/IPCV/TRDP/TRDP2/smallDatasets/"
@@ -18,13 +14,8 @@ datasets = get_folders(dir_datasets)
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 c1, c2, c3  = "n01498041","n01534433","n01687978",    #  note:escribir en orden alfabetico 
-<<<<<<< Updated upstream
 config = Configuration(model= 'ResNet18', 
                        N = 3, 
-=======
-config = Configuration( model= 'ResNet18', 
-                       N = 1, 
->>>>>>> Stashed changes
                        id_classes= [c1,c2,c3],
                        resolution= 10,
                        )
@@ -42,6 +33,8 @@ planesets = [Planeset(Triplet(pathImgs, config), config) for pathImgs in filenam
 
 first = True
 
+debugging_plot = False
+
 path_img_to_show = filenamesCombis[0][0]
 for planeset in planesets:
     if planeset.triplet.pathImgs[0] == path_img_to_show:
@@ -51,6 +44,17 @@ for planeset in planesets:
             first = False
         else:
             cmap, color_dict = add_new_classes_to_colormap(cmap, color_dict, unique_classes)
+
+        if debugging_plot:
+            import pickle
+            # Save variables to a file
+            with open('variables.pkl', 'wb') as file:
+                data = {
+                    'planeset': planeset,
+                    'cmap': cmap,
+                    'color_dict': color_dict
+                }
+                pickle.dump(data, file)
         planeset.show_simple(cmap,color_dict)
 
 #%%

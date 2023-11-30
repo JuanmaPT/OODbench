@@ -6,5 +6,5 @@
 *.PNG
 *.png
 *.pyc
-*
+*.pkl
 *38.pyc
