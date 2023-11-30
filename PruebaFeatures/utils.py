@@ -10,6 +10,8 @@ from PIL import Image
 import itertools
 import matplotlib.pyplot as plt
 
+from scipy.stats import norm
+from scipy.optimize import curve_fit
 
 class Configuration:
     def __init__(self, model, N, id_classes, resolution, dataset):
@@ -18,6 +20,7 @@ class Configuration:
         self.id_classes = id_classes
         self.resolution = resolution
         self.dataset = dataset
+        self.device='cuda' if torch.cuda.is_available() else 'cpu'
       
         with open( "imagenet_class_index.json", 'r') as json_file:
             data = json.load(json_file)
@@ -74,7 +77,7 @@ class Configuration:
             self.head_model[-1].bias.data = vit_weights['heads.head.bias'].view(self.head_model[-1].bias.size())
             self.head_model.eval()
       
-           #device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
     
         
 
@@ -133,10 +136,10 @@ def get_custom_colors(num):
     return custom_colors[:num]
 
 
-def euclidean_distance(vector1, vector2):
-    flattened_vector1 = vector1.view(-1) # flatten
-    flattened_vector2 = vector2.view(-1)
-    return torch.sqrt(torch.sum((flattened_vector1 - flattened_vector2)**2))
+#def euclidean_distance(vector1, vector2):
+    #flattened_vector1 = vector1.view(-1) # flatten
+    #flattened_vector2 = vector2.view(-1)
+    #return torch.sqrt(torch.sum((flattened_vector1 - flattened_vector2)**2))
 
 
 def min_max_normalize(distances):
@@ -145,23 +148,29 @@ def min_max_normalize(distances):
     normalized_distances = [(distance - min_value) / (max_value - min_value) for distance in distances]
     return normalized_distances
 
-def plot_pmf(data,bin_width,config, class_):
-    # Calculate the PMF
-    data = min_max_normalize(data)
-    values, counts = np.unique(data, return_counts=True)
-    pmf = counts / len(data)
+def plot_pmf(marginList, num_bins,config, class_, min_val, max_val):
     
     with open( "imagenet_class_index.json", 'r') as json_file:
-        data = json.load(json_file)
-    title = data[str(config.labels[class_])][1]
+        dataDict = json.load(json_file)
+    title = dataDict[str(config.labels[class_])][1]
     
+    counts, bins = np.histogram(marginList, bins=num_bins, density=True)
+    bins = bins[:-1] + (bins[1] - bins[0]) / 2
+    probs = counts / float(counts.sum())
+
+    plt.bar(bins, probs, width=(bins[1] - bins[0]))
+    #plt.plot(bins, probs, linestyle='-')
+    plt.xticks(np.arange(np.ceil(min_val), np.ceil(max_val) + 1))
+
     # Plot the PMF
-    plt.bar(values, pmf, width= bin_width, alpha=0.7)
     plt.xlabel('Values')
     plt.ylabel('Probability')
-    #plt.ylim([0, 1])
-    plt.title(f"Probability Mass Function (PMF)\n {title}")
+    #plt.xlim=(np.ceil(min_val), np.ceil(max_val))
+    # Uncomment the following line if you want to set y-axis limit between 0 and 1
+    # plt.ylim([0, 1])
+    plt.title(f"Probability Mass Function (PMF)\n{title}")
     plt.show()
+
 
 
 

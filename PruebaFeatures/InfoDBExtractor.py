@@ -55,7 +55,7 @@ class PlanesetInfoExtractor:
             predicted_classes = self.planeset.prediction.flatten()
 
             # Find positions where predicted class is different from anchor's target class
-            different_class_positions = torch.nonzero(predicted_classes != target_class)
+            different_class_positions = torch.nonzero(torch.from_numpy(predicted_classes != target_class))
 
             # Calculate distances between anchor and positions with different class
             distances = torch.sqrt((x_positions[different_class_positions] - coord[0]) ** 2 +
@@ -63,7 +63,7 @@ class PlanesetInfoExtractor:
 
             # Find the minimum distance
             min_distance = torch.min(distances)
-            margin.append(min_distance)
+            margin.append(float(min_distance.item()))
 
         return margin
         
