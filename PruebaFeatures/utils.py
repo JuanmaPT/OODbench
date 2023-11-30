@@ -36,7 +36,7 @@ class Configuration:
         if  self.modelType == 'ResNet18':
            
             # model to make predictions over images
-            self.model = models.resnet18(pretrained= True)
+            self.model = models.resnet18(weights='IMAGENET1K_V1')
             resnet_weights = self.model.state_dict()
             
             # base model as feature extractor: remove classification head
@@ -47,7 +47,7 @@ class Configuration:
             self.head_model = nn.Sequential(                                                   
                 nn.Flatten(),
                 nn.Linear(512, 1000)
-            )
+            ) 
            
             # weighs for head model 
             self.head_model[-1].weight.data = resnet_weights['fc.weight'].view(self.head_model[-1].weight.size())
@@ -70,8 +70,8 @@ class Configuration:
             # Classification head for making predictions over features
             self.head_model = nn.Sequential(
                 nn.Linear(768, 1000)
-            )
-
+            ) 
+           
             # Set weights for the head model
             self.head_model[-1].weight.data = vit_weights['heads.head.weight'].view(self.head_model[-1].weight.size())
             self.head_model[-1].bias.data = vit_weights['heads.head.bias'].view(self.head_model[-1].bias.size())
@@ -168,7 +168,7 @@ def plot_pmf(marginList, num_bins,config, class_, min_val, max_val):
     #plt.xlim=(np.ceil(min_val), np.ceil(max_val))
     # Uncomment the following line if you want to set y-axis limit between 0 and 1
     # plt.ylim([0, 1])
-    plt.title(f"Probability Mass Function (PMF)\n{title}")
+    plt.title(f"PMF - {config.dataset}\n{title} | {config.modelType} | N= {config.N} ")
     plt.show()
 
 

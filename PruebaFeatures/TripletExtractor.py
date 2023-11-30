@@ -3,6 +3,7 @@ from PIL import Image
 from torchvision import transforms
 import torch 
 from utils import *
+import numpy as np
 
 class Triplet:
     def __init__(self, pathImgs, config):
@@ -29,7 +30,7 @@ class Triplet:
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
-            image= preprocess(image)
+            image = preprocess(image)
             #print(image.size())
             
             # Expand dimensions to simulate batch size of 1
@@ -56,7 +57,7 @@ class Triplet:
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
-            image= preprocess(image)
+            image = preprocess(image)
             input_batch = image.unsqueeze(0)  # Add a batch dimension
             
             # Make predictions using the model
@@ -64,7 +65,7 @@ class Triplet:
                 output = self.config.model(input_batch)
                 #print(output.size())
                 _,pred_class= output.max(1)
-                pred_imgs.append(pred_class.item())
+                pred_imgs.append(np.uint16(pred_class.item()))
                 score_imgs.append(output.softmax(dim=-1).max().item())
             #print(pred_class.item())
             #print(pred_imgs)

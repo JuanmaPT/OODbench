@@ -18,9 +18,9 @@ margin_ViT = []
 for dataset in datasets:
     for model in models:
         config = Configuration(model= model, 
-                               N = 15, 
+                               N = 1, 
                                id_classes= [c1,c2,c3],
-                               resolution= 50,
+                               resolution= 10,
                                dataset = dataset
                                )
     
@@ -48,23 +48,15 @@ for dataset in datasets:
             margin_ViT.append(marginClass)
             
             
-#%% visualization example 
-#for the first image visualize all the triplet combination
-#path_img_to_show = filenamesCombis[0][0]
-#for planeset in planesets:
-    #if planeset.triplet.pathImgs[0] == path_img_to_show:
-    #planeset.show()
-
-
+        combined_array = np.concatenate(marginClass)
+        try: 
+            min_val = int(np.ceil(np.min(combined_array)))
+            max_val = int(np.ceil(np.max(combined_array)))
             
-#%% PMF
-#from utils import *
-#combined_array = np.concatenate(marginClass)
-#min_val = int(np.ceil(np.min(combined_array)))
-#max_val = int(np.ceil(np.max(combined_array)))
-
-#for i in range(len(config.labels)):
-    #plot_pmf(marginClass[i], 15, config, i, min_val, max_val)
+            for i in range(len(config.labels)):
+                plot_pmf(marginClass[i], 15, config, i, min_val, max_val)
+        except:
+            print("pass")
 #%%
 
 
