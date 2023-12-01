@@ -7,20 +7,24 @@ import numpy as np
 
 datasets = ["ImageNetA_small", "ImageNetSD_small", "ImageNetVal_small",  "SignalBlur_small"]
 models = ["ResNet18", "ViT"]
+models = ["ResNet18"]
 c1, c2, c3  = "n01498041","n01534433","n01687978"
 
-planesets_ResNet18 = []
-planesets_ViT = []
+save_info = False
 
-margin_ResNet18 = []
-margin_ViT = []
+if save_info:
+    planesets_ResNet18 = []
+    planesets_ViT = []
+
+    margin_ResNet18 = []
+    margin_ViT = []
 
 for dataset in datasets:
     for model in models:
         config = Configuration(model= model, 
-                               N = 1, 
+                               N = 15, 
                                id_classes= [c1,c2,c3],
-                               resolution= 10,
+                               resolution= 30,
                                dataset = dataset
                                )
     
@@ -39,13 +43,14 @@ for dataset in datasets:
                 if planesets[i].triplet.isImgPredCorrect[j] == True:
                     marginClass[j].append(descriptors[i].margin[j])
        
-        if model == "ResNet18":
-            planesets_ResNet18.append(planesets)
-            margin_ResNet18.append(marginClass)
-            
-        if model == "ViT":
-            planesets_ViT.append(planesets)
-            margin_ViT.append(marginClass)
+        if save_info:
+            if model == "ResNet18":
+                planesets_ResNet18.append(planesets)
+                margin_ResNet18.append(marginClass)
+
+            if model == "ViT":
+                planesets_ViT.append(planesets)
+                margin_ViT.append(marginClass)
             
             
         combined_array = np.concatenate(marginClass)

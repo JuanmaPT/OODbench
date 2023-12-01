@@ -9,6 +9,7 @@ class Planeset:
     def __init__(self, triplet, config):
         self.triplet = triplet
         self.config = config
+        self.planeset = self.computePlaneset()
         self.prediction, self.score = self.predict()
         self.anchors = self.getAnchors()
         self.predictedClasses = np.unique(self.prediction).astype(np.uint16)

@@ -91,7 +91,11 @@ def get_folders(path):
 
 
 def getCombiFromDBoptimal(config):
-    rootDir = "C:/Users/Blanca/Documents/IPCV/TRDP/TRDP2/smallDatasets/"
+    import os
+    if os.getlogin() == 'Blanca':
+        rootDir = "C:/Users/Blanca/Documents/IPCV/TRDP/TRDP2/smallDatasets/"
+    if os.getlogin() == 'juanm':
+        rootDir = "C:/Users/juanm/Documents/IPCV_3/TRDP/smallDatasets/"
     db_path = rootDir + config.dataset
     filenames_combinations = []
 
@@ -148,29 +152,26 @@ def min_max_normalize(distances):
     normalized_distances = [(distance - min_value) / (max_value - min_value) for distance in distances]
     return normalized_distances
 
-def plot_pmf(marginList, num_bins,config, class_, min_val, max_val):
-    
-    with open( "imagenet_class_index.json", 'r') as json_file:
+def plot_pmf(marginList, num_bins, config, class_, min_val, max_val):
+    with open("imagenet_class_index.json", 'r') as json_file:
         dataDict = json.load(json_file)
     title = dataDict[str(config.labels[class_])][1]
-    
+
     counts, bins = np.histogram(marginList, bins=num_bins, density=True)
     bins = bins[:-1] + (bins[1] - bins[0]) / 2
     probs = counts / float(counts.sum())
 
     plt.bar(bins, probs, width=(bins[1] - bins[0]))
-    #plt.plot(bins, probs, linestyle='-')
     plt.xticks(np.arange(np.ceil(min_val), np.ceil(max_val) + 1))
 
     # Plot the PMF
     plt.xlabel('Values')
     plt.ylabel('Probability')
-    #plt.xlim=(np.ceil(min_val), np.ceil(max_val))
-    # Uncomment the following line if you want to set y-axis limit between 0 and 1
-    # plt.ylim([0, 1])
     plt.title(f"PMF - {config.dataset}\n{title} | {config.modelType} | N= {config.N} ")
-    plt.show()
-
+    
+    # Save the figure before showing
+    plt.savefig(f"results\pmf_results_exp2_30\PMF_{config.dataset}_{title}_{config.modelType}_N_{config.N}.png")
+    plt.close()
 
 
 
