@@ -41,28 +41,20 @@ class PlanesetInfoExtractor:
      def extractMargin(self):
         "extract the margin as the min distance between the anchor and a different class prediction"        
         margin = []
-        coords = self.planeset.planeset.coords
-        x = self.planeset.planeset.coefs1.cpu().numpy()
-        y = self.planeset.planeset.coefs2.cpu().numpy()
+        predicted_classes = self.planeset.prediction.flatten()
 
         # Loop over anchors
         for i, (target_class, anchor) in enumerate(self.planeset.anchors.items()):
-            coord = coords[i]  # Coordinate of current anchor
-
-            # Get x, y positions and predicted classes
-            x_positions = torch.from_numpy(x.flatten())
-            y_positions = torch.from_numpy(y.flatten())
-            predicted_classes = self.planeset.prediction.flatten()
-
-            # Find positions where predicted class is different from anchor's target class
-            different_class_positions = torch.nonzero(torch.from_numpy(predicted_classes != target_class))
-
-            # Calculate distances between anchor and positions with different class
-            distances = torch.sqrt((x_positions[different_class_positions] - coord[0]) ** 2 +
-                                (y_positions[different_class_positions] - coord[1]) ** 2)
-
+            feature_vect_anchor = self.planeset.triplet.features[i]  # Feature vector of current anchor
+            different_class_positions = torch.nonzero(torch.from_numpy(predicted_classes != target_class)).squeeze()
+            # Extract tensors of samples that are classified to another class different to the anchor
+            target_tensors = self.planeset.planeset[different_class_positions]
+            # Repeat feature_vect_anchor to match the number of target tensors
+            feature_vect_anchor_repeated = feature_vect_anchor.expand_as(target_tensors)
+            # Compute Euclidean distance
+            euclidean_distances = torch.norm(target_tensors - feature_vect_anchor_repeated, dim=1)
             # Find the minimum distance
-            min_distance = torch.min(distances)
+            min_distance = torch.min(euclidean_distances)
             margin.append(float(min_distance.item()))
 
         return margin

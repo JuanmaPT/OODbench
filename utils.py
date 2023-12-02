@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 
 from scipy.stats import norm
 from scipy.optimize import curve_fit
+import csv
 
 class Configuration:
     def __init__(self, model, N, id_classes, resolution, dataset):
@@ -152,7 +153,7 @@ def min_max_normalize(distances):
     normalized_distances = [(distance - min_value) / (max_value - min_value) for distance in distances]
     return normalized_distances
 
-def plot_pmf(marginList, num_bins, config, class_, min_val, max_val):
+def plot_pmf(marginList, num_bins, config, class_, min_val, max_val,result_folder_name):
     with open("imagenet_class_index.json", 'r') as json_file:
         dataDict = json.load(json_file)
     title = dataDict[str(config.labels[class_])][1]
@@ -170,12 +171,33 @@ def plot_pmf(marginList, num_bins, config, class_, min_val, max_val):
     plt.title(f"PMF - {config.dataset}\n{title} | {config.modelType} | N= {config.N} ")
     
     # Save the figure before showing
-    plt.savefig(f"results\pmf_results_exp2_30\PMF_{config.dataset}_{title}_{config.modelType}_N_{config.N}.png")
+    plt.savefig(f"results\{result_folder_name}\PMF_{config.dataset}_{title}_{config.modelType}_N_{config.N}.png")
     plt.close()
 
 
 
+def create_result_folder(result_folder_name):
+    # Check if the folder exists
+    folder_exists = os.path.exists(f"results/{result_folder_name}")
+    # If the folder already exists, find a new folder name
+    if folder_exists:
+        counter = 1
+        while folder_exists:
+            new_folder_name = f"{result_folder_name}_{counter}"
+            folder_exists = os.path.exists(f"results/{new_folder_name}")
+            counter += 1
+        os.makedirs(f"results/{new_folder_name}")
+        return new_folder_name
+    else:
+        os.makedirs(f"results/{result_folder_name}")
+        return result_folder_name
 
+
+def save_to_csv(data, filename):
+    with open(filename, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        for row in data:
+            writer.writerow(row)
 
 
 

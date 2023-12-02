@@ -12,7 +12,7 @@ class Planeset:
         self.planeset = self.computePlaneset()
         self.prediction, self.score = self.predict()
         self.anchors = self.getAnchors()
-        self.predictedClasses = np.unique(self.prediction)
+        self.predictedClasses = np.unique(self.prediction).astype(np.uint16)
     
        
     def computePlaneset(self):
@@ -37,7 +37,7 @@ class Planeset:
                 preds.append(pred_class)
                 scores.append(pred.softmax(dim=-1).max().item())
         
-        planeset_pred = np.array(preds).reshape(r,r)
+        planeset_pred = np.array(preds).reshape(r,r).astype(np.uint16)
         planeset_score = np.array(scores).reshape(r,r)
                 
         return planeset_pred, planeset_score
@@ -242,8 +242,8 @@ class Planeset:
             
             
             # Set title
-            axes[1, i].set_title(f"True class: {self.config.labels[i]}, {data[str(self.config.labels[i])][1]}\n...
-                                 Prediction: {self.triplet.prediction[i]}, {data[str(self.triplet.prediction[i])][1]}\n...
+            axes[1, i].set_title(f"True class: {self.config.labels[i]}, {data[str(self.config.labels[i])][1]}\n \
+                                 Prediction: {self.triplet.prediction[i]}, {data[str(self.triplet.prediction[i])][1]}\n \
                                  Score: {self.triplet.score[i]}", fontsize='small', y=-0.35)
 
         # Add arrows from the anchor subplots to the anchor squares

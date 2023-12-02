@@ -10,25 +10,31 @@ models = ["ResNet18", "ViT"]
 models = ["ResNet18"]
 c1, c2, c3  = "n01498041","n01534433","n01687978"
 
-save_info = False
+result_folder_name = 'CambioMargin'
+result_folder_name = create_result_folder(result_folder_name)
+
+save_info = True
 
 if save_info:
-    planesets_ResNet18 = []
-    planesets_ViT = []
 
     margin_ResNet18 = []
     margin_ViT = []
 
+marging_save_list = []
+
 for dataset in datasets:
     for model in models:
         config = Configuration(model= model, 
-                               N = 15, 
+                               N = 2, 
                                id_classes= [c1,c2,c3],
-                               resolution= 30,
+                               resolution= 15,
                                dataset = dataset
                                )
     
         filenamesCombis =  getCombiFromDBoptimal(config)
+        margins_save = [] #list for storing the marging values
+        margins_save.append(model)
+        margins_save.append(dataset)
         planesets = []
         for i, pathImgs in tqdm(enumerate(filenamesCombis), total=len(filenamesCombis), desc="Processing"):
             triplet_object = Triplet(pathImgs, config)
@@ -42,14 +48,13 @@ for dataset in datasets:
             for j in range(len(config.id_classes)):
                 if planesets[i].triplet.isImgPredCorrect[j] == True:
                     marginClass[j].append(descriptors[i].margin[j])
+                    margins_save.append(round(descriptors[i].margin[j], 4))
        
         if save_info:
             if model == "ResNet18":
-                planesets_ResNet18.append(planesets)
                 margin_ResNet18.append(marginClass)
 
             if model == "ViT":
-                planesets_ViT.append(planesets)
                 margin_ViT.append(marginClass)
             
             
@@ -59,9 +64,14 @@ for dataset in datasets:
             max_val = int(np.ceil(np.max(combined_array)))
             
             for i in range(len(config.labels)):
-                plot_pmf(marginClass[i], 15, config, i, min_val, max_val)
+                plot_pmf(marginClass[i], 15, config, i, min_val, max_val,result_folder_name)
         except:
             print("pass")
+        marging_save_list.append(margins_save)
+    
+
+save_to_csv(marging_save_list, f"results\{result_folder_name}\margin_ResNet18.csv")
+print('All done')
 #%%
 
 
