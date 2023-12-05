@@ -60,4 +60,4 @@ def display_colors(color_list):
 
 colors = generate_color_map()
 display_colors(colors)
-np.savetxt('Colors1K.txt', colors)
+np.savetxt('Colors1k.txt', colors)

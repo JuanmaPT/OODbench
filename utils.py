@@ -142,7 +142,7 @@ def min_max_normalize(distances):
     return normalized_distances
 
 
-def plot_pmf(marginList, class_, num_bins,config, min_val, max_val):
+def plot_pmf(marginList, class_, num_bins,config, min_val, max_val,result_folder_name):
     
     with open( "imagenet_class_index.json", 'r') as json_file:
         dataDict = json.load(json_file)
@@ -163,7 +163,8 @@ def plot_pmf(marginList, class_, num_bins,config, min_val, max_val):
     # Uncomment the following line if you want to set y-axis limit between 0 and 1
     # plt.ylim([0, 1])
     plt.title(f"PMF - {config.dataset}\n{title} | {config.modelType} | N= {config.N} ") 
-    plt.savefig(f"results/PMF_{config.dataset}{title}{config.modelType}N{config.N}.png")
+    plt.savefig(f"results/{config.model}/plots/PMF_{config.dataset}_{title}_{config.modelType}_N_{config.N}.png")
+    #plt.close()
     plt.show()
 
 
@@ -184,13 +185,16 @@ def create_result_folder(result_folder_name):
         return result_folder_name
 
 
-def save_to_csv(data, filename):
-    with open(filename, 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        for row in data:
-            writer.writerow(row)
-
-
+def save_to_csv(model_dict, output_folder):
+    for dataset, classes in model_dict.items():
+        file_path = os.path.join(output_folder, f"{dataset}.csv")
+        
+        with open(file_path, 'w', newline='') as file:
+            writer = csv.writer(file)
+            # Write data
+            for class_name, values in classes.items():
+                row_data = [class_name] + values
+                writer.writerow(row_data)
 
 
 

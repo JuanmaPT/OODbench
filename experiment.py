@@ -25,18 +25,17 @@ datasets = ["ImageNetVal_small"]
 models = ["ResNet18"]
 class_selection=  [stingray, junco, bullfrog, agama, robin, jay, bad_eagle]
 
+#result_folder_name = 'MarginRes'
+#result_folder_name = create_result_folder(result_folder_name)
 
-result_folder_name = 'CambioMargin'
-result_folder_name = create_result_folder(result_folder_name)
+save_info = True
+save_plot = False
 
-save_info = False
-
-#if save_info:
-    #margin_ResNet18 = []
-    #margin_ViT = []
+if save_info:
+    margin_ResNet18 = {}
+    margin_ViT = {}
     
 #marging_save_list = []
-
 for dataset in datasets:
     for model in models:
         config = Configuration(model= model, 
@@ -47,45 +46,44 @@ for dataset in datasets:
                                )
     
         filenamesCombis =  getCombiFromDBoptimal(config)
-        margins_save = [] #list for storing the marging values
-        margins_save.append(model)
-        margins_save.append(dataset)
+        #margins_save = [] #list for storing the marging values
+        #margins_save.append(model)
+        #margins_save.append(dataset)
+        
+        # planeset computation per triplet
         planesets = []
         for i, pathImgs in tqdm(enumerate(filenamesCombis), total=len(filenamesCombis), desc="Processing"):
             triplet_object = Triplet(pathImgs, config)
             planeset_object = Planeset(triplet_object, config)
             planesets.append(planeset_object)
-           
-        descriptors = [PlanesetInfoExtractor(planeset,config) for planeset in planesets]
         
-        #marginClass = [[] for _ in range(len(config.id_classes))]
-        #for i in range(len(planesets)):
-            #for j in range(len(config.id_classes)):
-                #if planesets[i].triplet.isImgPredCorrect[j] == True:
-                    #marginClass[j].append(descriptors[i].margin[j])
-                    #margins_save.append(round(descriptors[i].margin[j], 4))
-       
+        # margin extraction
+        descriptors = [PlanesetInfoExtractor(planeset,config) for planeset in planesets]
         margin_dict = {label: [] for label in config.labels}
         for i,planeset in enumerate(planesets):
             for j in range(3):
                 if planeset.triplet.true_label[j] == planeset.triplet.prediction[j]:
-                    margin_dict[planeset.triplet.true_label[j]].append(descriptors[i].margin[j])
+                    margin_dict[planeset.triplet.true_label[j]].append(round(descriptors[i].margin[j],4))
         
-        #if save_info:
-            #if model == "ResNet18":
-                #margin_ResNet18.append(marginClass)
-
-            #if model == "ViT":
-                #.append(marginClass)
+        if save_info:
+            if model == "ResNet18":
+                margin_ResNet18[dataset] = margin_dict
+            if model == "ViT":
+                margin_ViT[dataset] = margin_dict
       
-        for classLabel, values in margin_dict.items():
-            print(classLabel)
-            #if values:  # Check if the list is not empty
-            plot_pmf(values, classLabel, 15, config, 0, 20)
+        if save_plot:
+            for classLabel, values in margin_dict.items():
+                plot_pmf(values, classLabel, 15, config, 0, 20, "result/plots")
         
         #marging_save_list.append(margins_save)
-    
-#save_to_csv(marging_save_list, f"results\{result_folder_name}\margin_ResNet18.csv")
+
+
+if save_info:
+    if model == "ResNet18":
+        save_to_csv(margin_ResNet18, "results/ResNet18/values/")
+    if model == "ViT":
+        save_to_csv(margin_ViT, "results/ViT/values/")
+
 print('All done')
 #%%
 
