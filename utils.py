@@ -87,8 +87,6 @@ class Configuration:
         return model, base_model, head_model
         
     
-        
-
 def get_folders(path):
   """Returns a list of folders in the given path."""
   folders = []
@@ -165,7 +163,7 @@ def plot_pmf(marginList, class_, num_bins,config, min_val, max_val):
     # Uncomment the following line if you want to set y-axis limit between 0 and 1
     # plt.ylim([0, 1])
     plt.title(f"PMF - {config.dataset}\n{title} | {config.modelType} | N= {config.N} ") 
-    plt.savefig(f"results/PMFresults/PMF_{config.dataset}{title}{config.modelType}N{config.N}.png")
+    plt.savefig(f"results/PMF_{config.dataset}{title}{config.modelType}N{config.N}.png")
     plt.show()
 
 

@@ -78,12 +78,11 @@ for dataset in datasets:
             #if model == "ViT":
                 #.append(marginClass)
       
-        margin_dict = {label: [] for label in config.labels}
-        for i,planeset in enumerate(planesets):
-            for j in range(3):
-                if planeset.triplet.true_label[j] == planeset.triplet.prediction[j]:
-                    margin_dict[planeset.triplet.true_label[j]].append(descriptors[i].margin[j])
-
+        for classLabel, values in margin_dict.items():
+            print(classLabel)
+            #if values:  # Check if the list is not empty
+            plot_pmf(values, classLabel, 15, config, 0, 20)
+        
         #marging_save_list.append(margins_save)
     
 #save_to_csv(marging_save_list, f"results\{result_folder_name}\margin_ResNet18.csv")
