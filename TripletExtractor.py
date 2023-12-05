@@ -9,11 +9,26 @@ class Triplet:
     def __init__(self, pathImgs, config):
         self.pathImgs = pathImgs
         self.config= config
+        self.true_label = self.getLabel()
         self.images = self.getImages()
         self.features = self.extractFeatures()
         self.prediction, self.score = self.predict()
         self.isImgPredCorrect = self.checkPred()
+    
+    def getLabel(self):
+        idx = [pathImg.split(f"{self.config.dataset}\\")[1].split("\\")[0] for pathImg in  self.pathImgs]
+        
+        with open("imagenet_class_index.json", 'r') as json_file:
+            data = json.load(json_file)
 
+        labels = []
+        for search_id in idx:
+            for key, value in data.items():
+                if search_id in value:
+                    labels.append(int(key))
+                
+        return labels
+        
     def getImages(self):
         return [Image.open(self.pathImgs[0]), Image.open(self.pathImgs[1]), Image.open(self.pathImgs[2])]
     

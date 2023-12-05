@@ -21,63 +21,70 @@ class Configuration:
         self.id_classes = id_classes
         self.resolution = resolution
         self.dataset = dataset
-        self.device='cuda' if torch.cuda.is_available() else 'cpu'
-      
-        with open( "imagenet_class_index.json", 'r') as json_file:
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.labels = self.get_labels()
+
+        if self.modelType == 'ResNet18':
+            self.model, self.base_model, self.head_model = self.load_resnet18()
+        elif self.modelType == 'ViT':
+            self.model, self.base_model, self.head_model = self.load_vit()
+
+    def get_labels(self):
+        with open("imagenet_class_index.json", 'r') as json_file:
             data = json.load(json_file)
-        
-        self.labels = []
-        for search_id in id_classes:
+
+        labels = []
+        for search_id in self.id_classes:
             for key, value in data.items():
                 if search_id in value:
-                    self.labels.append(int(key))
-                    print(key,value)
-     
-       
-        if  self.modelType == 'ResNet18':
-           
-            # model to make predictions over images
-            self.model = models.resnet18(weights='IMAGENET1K_V1')
-            resnet_weights = self.model.state_dict()
-            
-            # base model as feature extractor: remove classification head
-            self.base_model= nn.Sequential(*list(self.model.children())[:-1]) 
-            self.base_model.eval()
-            
-            # classification head to make predictions over features
-            self.head_model = nn.Sequential(                                                   
-                nn.Flatten(),
-                nn.Linear(512, 1000)
-            ) 
-           
-            # weighs for head model 
-            self.head_model[-1].weight.data = resnet_weights['fc.weight'].view(self.head_model[-1].weight.size())
-            self.head_model[-1].bias.data = resnet_weights['fc.bias'].view(self.head_model[-1].bias.size())
-            self.head_model.eval()
-            
-            
-            
-        if self.modelType == 'ViT':
-            # model to make predictions over images
-            self.model = models.vit_b_16(pretrained= True)
-            vit_weights = self.model.state_dict()
-      
-            
-            # base model as feature extractor: remove classification head
-            self.base_model = models.vit_b_16(weights='IMAGENET1K_V1')
-            self.base_model.heads.head = nn.Identity()
-            self.base_model.eval()
+                    labels.append(int(key))
+                    print(key, value)
 
-            # Classification head for making predictions over features
-            self.head_model = nn.Sequential(
-                nn.Linear(768, 1000)
-            ) 
-           
-            # Set weights for the head model
-            self.head_model[-1].weight.data = vit_weights['heads.head.weight'].view(self.head_model[-1].weight.size())
-            self.head_model[-1].bias.data = vit_weights['heads.head.bias'].view(self.head_model[-1].bias.size())
-            self.head_model.eval()
-      
+        return labels
+
+    def load_resnet18(self):
+        # Model to make predictions over images
+        model = models.resnet18(weights='IMAGENET1K_V1')
+        resnet_weights = model.state_dict()
+
+        # Base model as feature extractor: remove classification head
+        base_model = nn.Sequential(*list(model.children())[:-1])
+        base_model.eval()
+
+        # Classification head to make predictions over features
+        head_model = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(512, 1000)
+        )
+
+        # Weights for head model
+        head_model[-1].weight.data = resnet_weights['fc.weight'].view(head_model[-1].weight.size())
+        head_model[-1].bias.data = resnet_weights['fc.bias'].view(head_model[-1].bias.size())
+        head_model.eval()
+
+        return model, base_model, head_model
+
+    def load_vit(self):
+        # Model to make predictions over images
+        model = models.vit_b_16(pretrained=True)
+        vit_weights = model.state_dict()
+
+        # Base model as feature extractor: remove classification head
+        base_model = models.vit_b_16(weights='IMAGENET1K_V1')
+        base_model.heads.head = nn.Identity()
+        base_model.eval()
+
+        # Classification head for making predictions over features
+        head_model = nn.Sequential(
+            nn.Linear(768, 1000)
+        )
+
+        # Set weights for the head model
+        head_model[-1].weight.data = vit_weights['heads.head.weight'].view(head_model[-1].weight.size())
+        head_model[-1].bias.data = vit_weights['heads.head.bias'].view(head_model[-1].bias.size())
+        head_model.eval()
+
+        return model, base_model, head_model
         
     
         
@@ -99,46 +106,29 @@ def getCombiFromDBoptimal(config):
         rootDir = "C:/Users/juanm/Documents/IPCV_3/TRDP/smallDatasets/"
     db_path = rootDir + config.dataset
     filenames_combinations = []
+    
+    # JuanManueeeel creo que es mejor que lo pongamos los dos aquí:
+    #rootDir = "smallDatasets/"
+    #db_path = os.path.join(rootDir, config.dataset)
+    #filenames_combinations = []
 
     # Get the file paths of the images in each folder
-    class1_folder = db_path + "/" + config.id_classes[0] + "/"
-    class2_folder = db_path + "/" + config.id_classes[1] + "/"
-    class3_folder = db_path + "/" + config.id_classes[2] + "/"
+    class_folders = [os.path.join(db_path, class_id) for class_id in config.id_classes]
 
-    class1 = [os.path.join(class1_folder, filename) for filename in os.listdir(class1_folder)[:config.N]]
-    class2 = [os.path.join(class2_folder, filename) for filename in os.listdir(class2_folder)[:config.N]]
-    class3 = [os.path.join(class3_folder, filename) for filename in os.listdir(class3_folder)[:config.N]]
-
-    # Generate combinations while ensuring unique rotations
-    filenames_set = set()  # Use a set to store unique combinations
-
-    for combi in itertools.product(class1, class2, class3):
-        combi_sorted = sorted(combi)  # Sort the paths within each combination
-        combi_tuple = tuple(combi_sorted)
-
-        # Check if the combination is unique
-        if combi_tuple not in filenames_set:
-            filenames_set.add(combi_tuple)
-            filenames_combinations.append(combi_tuple)
-
-    print(f"Total number of unique combinations: {len(filenames_combinations)}")
-    return filenames_combinations
-
-
-
-def get_custom_colors(num):
-    custom_colors = [
-        (0, 1, 1),  #Cyan
-        (1, 0, 0),  # Red
-        (0.8, 0.6, 1),  # Lavender
-        (0, 1, 0.5), # Lime Green
-        (1, 1, 0),  # Yellow
-        (1, 0.5, 1),  # Pink
-        (0, 0.5, 1),    # Sky Blue
-        (0.5, 0, 0.5),  # Purple      
-       ]  
+    # Generate the a list with the path to the images for each class 
+    class_lists = []
+    for class_folder in class_folders: 
+        class_list = [os.path.join(class_folder, filename) for filename in os.listdir(class_folder)[:config.N]]
+        class_lists.append(class_list)
+     
+    # combinations at class level (k_clases over 3)
+    combinations_3 = list(itertools.combinations(class_lists, 3))
+    #combinations at image level N^3
+    for combo in combinations_3:
+        for values in itertools.product(*combo):
+            filenames_combinations.append(values)
     
-    return custom_colors[:num]
+    return filenames_combinations
 
 
 #def euclidean_distance(vector1, vector2):
@@ -153,27 +143,30 @@ def min_max_normalize(distances):
     normalized_distances = [(distance - min_value) / (max_value - min_value) for distance in distances]
     return normalized_distances
 
-def plot_pmf(marginList, num_bins, config, class_, min_val, max_val,result_folder_name):
-    with open("imagenet_class_index.json", 'r') as json_file:
-        dataDict = json.load(json_file)
-    title = dataDict[str(config.labels[class_])][1]
 
+def plot_pmf(marginList, class_, num_bins,config, min_val, max_val):
+    
+    with open( "imagenet_class_index.json", 'r') as json_file:
+        dataDict = json.load(json_file)
+    title = dataDict[str(class_)][1]
+    
     counts, bins = np.histogram(marginList, bins=num_bins, density=True)
     bins = bins[:-1] + (bins[1] - bins[0]) / 2
     probs = counts / float(counts.sum())
 
     plt.bar(bins, probs, width=(bins[1] - bins[0]))
+    #plt.plot(bins, probs, linestyle='-')
     plt.xticks(np.arange(np.ceil(min_val), np.ceil(max_val) + 1))
 
     # Plot the PMF
     plt.xlabel('Values')
     plt.ylabel('Probability')
-    plt.title(f"PMF - {config.dataset}\n{title} | {config.modelType} | N= {config.N} ")
-    
-    # Save the figure before showing
-    plt.savefig(f"results\{result_folder_name}\PMF_{config.dataset}_{title}_{config.modelType}_N_{config.N}.png")
-    plt.close()
-
+    #plt.xlim=(np.ceil(min_val), np.ceil(max_val))
+    # Uncomment the following line if you want to set y-axis limit between 0 and 1
+    # plt.ylim([0, 1])
+    plt.title(f"PMF - {config.dataset}\n{title} | {config.modelType} | N= {config.N} ") 
+    plt.savefig(f"results/PMFresults/PMF_{config.dataset}{title}{config.modelType}N{config.N}.png")
+    plt.show()
 
 
 def create_result_folder(result_folder_name):
