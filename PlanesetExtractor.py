@@ -32,6 +32,7 @@ class Planeset:
         for idx in range(len(self.planeset)):
             mixfeat = self.planeset[idx]
             #print("pred", mixfeat.shape)
+            mixfeat = mixfeat.squeeze()
             with torch.no_grad():
                 pred = self.config.head_model(mixfeat)
                 pred_class = pred.argmax().item()

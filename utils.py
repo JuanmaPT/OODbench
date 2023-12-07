@@ -53,7 +53,7 @@ class Configuration:
 
         # Classification head to make predictions over features
         head_model = nn.Sequential(
-            nn.Flatten(),
+            #nn.Flatten(),
             nn.Linear(512, 1000)
         )
 

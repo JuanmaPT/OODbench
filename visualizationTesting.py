@@ -15,7 +15,8 @@ bullfrog = "n01641577"
 agama = "n01687978"
 
 class_selection=  [stingray, junco, bullfrog, agama, robin, jay, bad_eagle]
-config = Configuration(model= "ResNet18", 
+class_selection=  [stingray, junco, bullfrog]
+config = Configuration(model= "ViT", 
                        N = 1,
                        id_classes= class_selection,
                        resolution= 10,
@@ -24,11 +25,10 @@ config = Configuration(model= "ResNet18",
 
 filenamesCombis =  getCombiFromDBoptimal(config)
 planesets = []
-for i, pathImgs in tqdm(enumerate(filenamesCombis), total=len(filenamesCombis), desc="Processing"):
-    planeset_object = Planeset(Triplet(pathImgs, config), config)
-    planesets.append(planeset_object)
 
-    
+for i, pathImgs in tqdm(enumerate(filenamesCombis), total=len(filenamesCombis), desc="Processing"):
+    planesets.append(Planeset(Triplet(pathImgs, config), config))
+
 descriptors = [PlanesetInfoExtractor(planeset,config) for planeset in planesets]
 for planeset in planesets:
     planeset.show()

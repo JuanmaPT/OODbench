@@ -53,8 +53,9 @@ class Triplet:
             #print(image.size())
             # Extract features with the base model
             with torch.no_grad():
-                #print("here")
                 features = self.config.base_model(input_batch)
+                if self.config.modelType == 'ViT':
+                    features = features.unsqueeze(-1).unsqueeze(-1)
                 #print(features.size())
                
            
