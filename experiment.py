@@ -8,9 +8,9 @@ import numpy as np
 # Dataset, model, class selection 
 # Meter esto en un arg parser al final
 
-#datasets = ["ImageNetA_small", "ImageNetSD_small", "ImageNetVal_small",  "SignalBlur_small"]
-#models = ["ResNet18", "ViT"]
-#c1, c2, c3  = "n01498041","n01534433","n01687978"
+datasets = ["ImageNetA_small", "ImageNetSD_small", "ImageNetVal_small",  "SignalBlur_small"]
+models = ["ResNet18", "ViT"]
+
 
 stingray = "n01498041"
 junco = "n01534433"
@@ -20,16 +20,15 @@ bad_eagle= "n01614925"
 bullfrog = "n01641577"
 agama = "n01687978"
 
-
-datasets = ["ImageNetVal_small"]
-models = ["ResNet18"]
+#datasets = ["ImageNetSD_small"]
+#models = ["ResNet18"]
 class_selection=  [stingray, junco, bullfrog, agama, robin, jay, bad_eagle]
 
 #result_folder_name = 'MarginRes'
 #result_folder_name = create_result_folder(result_folder_name)
-
+create_result_folder(models)
 save_info = True
-save_plot = False
+save_plot = True
 
 if save_info:
     margin_ResNet18 = {}

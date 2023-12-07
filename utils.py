@@ -163,12 +163,12 @@ def plot_pmf(marginList, class_, num_bins,config, min_val, max_val,result_folder
     # Uncomment the following line if you want to set y-axis limit between 0 and 1
     # plt.ylim([0, 1])
     plt.title(f"PMF - {config.dataset}\n{title} | {config.modelType} | N= {config.N} ") 
-    plt.savefig(f"results/{config.model}/plots/PMF_{config.dataset}_{title}_{config.modelType}_N_{config.N}.png")
+    plt.savefig(f"results/{config.modelType}/plots/PMF_{config.dataset}_{title}_{config.modelType}_N_{config.N}.png")
     #plt.close()
     plt.show()
 
 
-def create_result_folder(result_folder_name):
+"""def create_result_folder(result_folder_name):
     # Check if the folder exists
     folder_exists = os.path.exists(f"results/{result_folder_name}")
     # If the folder already exists, find a new folder name
@@ -182,9 +182,37 @@ def create_result_folder(result_folder_name):
         return new_folder_name
     else:
         os.makedirs(f"results/{result_folder_name}")
-        return result_folder_name
+        return result_folder_name"""
+    
+def create_result_folder(models):
+    root_folder = "results"
+    #models = ["ResNet18", "ViT"]
+    subfolders = ["plots", "values"]
+    
+    # Create the root folder if it doesn't exist
+    if not os.path.exists(root_folder):
+        os.makedirs(root_folder)
+    
+    # Create subfolders for each model
+    for model in models:
+        model_folder = os.path.join(root_folder, model)
+        # Create the model folder if it doesn't exist
+        if not os.path.exists(model_folder):
+            os.makedirs(model_folder)
+    
+        # Create subfolders inside the model folder
+        for subfolder in subfolders:
+            subfolder_path = os.path.join(model_folder, subfolder)
+            
+            # Create the subfolder if it doesn't exist
+            if not os.path.exists(subfolder_path):
+                os.makedirs(subfolder_path)
+    
+    print("Folder structure created successfully.")
 
 
+
+    
 def save_to_csv(model_dict, output_folder):
     for dataset, classes in model_dict.items():
         file_path = os.path.join(output_folder, f"{dataset}.csv")
