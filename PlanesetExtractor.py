@@ -67,7 +67,7 @@ class Planeset:
         
         return anchor_dict
     
-    def show(self):
+    def show(self,class_to_color):
         unique_classes = np.unique(self.prediction)
         num_classes = len(unique_classes)
         
@@ -80,8 +80,11 @@ class Planeset:
         for class_label in unique_classes:
             class_indices = np.where(self.prediction == class_label)
             class_scores = self.score[class_indices]
-            color_map_flat[class_indices] = np.array(custom_colors[class_label])[:3]
-            color_map_scores[class_indices] = np.array(custom_colors[class_label])[:3]*class_scores[:, np.newaxis] 
+            #color_map_flat[class_indices] = np.array(custom_colors[class_label])[:3]
+            #color_map_scores[class_indices] = np.array(custom_colors[class_label])[:3]*class_scores[:, np.newaxis]
+            print(class_to_color.get(class_label, None)[:3])
+            color_map_flat[class_indices] = class_to_color.get(class_label, None)[:3]
+            color_map_scores[class_indices] = class_to_color.get(class_label, None)[:3]*class_scores[:, np.newaxis]
 
     
         fig,axes = plt.subplots(2,3, figsize=(15, 10))
@@ -111,7 +114,9 @@ class Planeset:
         
         # Add a legend to axes[0, 2] with labels showing the values corresponding to class numbers
         legend_labels = [f"{class_label}: {data[str(class_label)][1]}" for class_label in unique_classes]
-        color_legends = [ np.array(custom_colors[class_label])[:3] for class_label in unique_classes]
+        
+        color_legends = [ np.array(class_to_color.get(class_label, None)[:3]) for class_label in unique_classes]
+        #color_legends = [ np.array(custom_colors[class_label])[:3] for class_label in unique_classes]
         legend_patches = [mpatches.Patch(color=color, label=f"{class_label}: {data[str(class_label)][1]}") for class_label, color in zip(unique_classes, color_legends)]
 
         axes[0, 2].legend(handles=legend_patches, loc='upper left', bbox_to_anchor=(0, 1))
@@ -129,6 +134,9 @@ class Planeset:
         fig.suptitle(title_sup, y=1.02, fontsize=20)
         fig.tight_layout()
         plt.show()
+
+    def get_predictedClasses(self):
+        return self.predictedClasses
     
         
         

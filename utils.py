@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import norm
 from scipy.optimize import curve_fit
 import csv
+from matplotlib.colors import ListedColormap
 
 class Configuration:
     def __init__(self, model, N, id_classes, resolution, dataset):
@@ -195,6 +196,24 @@ def save_to_csv(model_dict, output_folder):
             for class_name, values in classes.items():
                 row_data = [class_name] + values
                 writer.writerow(row_data)
+
+def get_diff_color(planesets):
+    unique_classes_all = np.unique(np.concatenate([planeset.predictedClasses for planeset in planesets]))
+    cmap = plt.cm.get_cmap('tab20', len(unique_classes_all))
+
+    # Generate equally spaced values between 0 and 1
+    color_positions = np.linspace(0, 1, len(unique_classes_all))
+
+    # Extract colors from the colormap at the specified positions
+    distinct_colors = [cmap(pos) for pos in color_positions]
+
+    # Create a ListedColormap from the distinct colors
+    custom_cmap = ListedColormap(distinct_colors)
+    # Map each unique class to a color
+    class_to_color = {cls: custom_cmap(i) for i, cls in enumerate(unique_classes_all)}
+
+    return class_to_color
+
 
 
 

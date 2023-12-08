@@ -1,9 +1,11 @@
+#%% 
 from utils import *
 from TripletExtractor import Triplet
 from PlanesetExtractor import Planeset
 from InfoDBExtractor import PlanesetInfoExtractor
 from tqdm import tqdm
 import numpy as np
+
 
 #selection of the class id
 stingray = "n01498041"
@@ -15,11 +17,10 @@ bullfrog = "n01641577"
 agama = "n01687978"
 
 class_selection=  [stingray, junco, bullfrog, agama, robin, jay, bad_eagle]
-class_selection=  [stingray, junco, bullfrog]
-config = Configuration(model= "ViT", 
+config = Configuration(model= "ResNet18", 
                        N = 1,
                        id_classes= class_selection,
-                       resolution= 10,
+                       resolution= 70,
                        dataset = "ImageNetVal_small",
                        )
 
@@ -29,9 +30,15 @@ planesets = []
 for i, pathImgs in tqdm(enumerate(filenamesCombis), total=len(filenamesCombis), desc="Processing"):
     planesets.append(Planeset(Triplet(pathImgs, config), config))
 
+
+
 descriptors = [PlanesetInfoExtractor(planeset,config) for planeset in planesets]
+
+#%% 
+class_to_color = get_diff_color(planesets)
+#%% 
 for planeset in planesets:
-    planeset.show()
+    planeset.show(class_to_color)
 
 """margin_dict = {label: [] for label in config.labels}
 for i,planeset in enumerate(planesets):
