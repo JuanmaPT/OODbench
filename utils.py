@@ -15,6 +15,9 @@ from scipy.optimize import curve_fit
 import csv
 from matplotlib.colors import ListedColormap
 
+import gdown
+import zipfile
+
 class Configuration:
     def __init__(self, model, N, id_classes, resolution, dataset):
         self.modelType = model
@@ -112,6 +115,71 @@ def getCombiFromDBoptimal(config):
     #filenames_combinations = []
 
     # Get the file paths of the images in each folder
+    class_folders = [os.path.join(db_path, class_id) for class_id in config.id_classes]
+
+    # Generate the a list with the path to the images for each class 
+    class_lists = []
+    for class_folder in class_folders: 
+        class_list = [os.path.join(class_folder, filename) for filename in os.listdir(class_folder)[:config.N]]
+        class_lists.append(class_list)
+     
+    # combinations at class level (k_clases over 3)
+    combinations_3 = list(itertools.combinations(class_lists, 3))
+    #combinations at image level N^3
+    for combo in combinations_3:
+        for values in itertools.product(*combo):
+            filenames_combinations.append(values)
+    
+    return filenames_combinations
+
+
+def unzip_file(zip_path, destination_folder):
+    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        zip_ref.extractall(destination_folder)
+
+def create_folder(folder_path):
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+
+
+def download_file_from_google_drive(file_id, destination):
+    url = f'https://drive.google.com/uc?id={file_id}'
+    output = os.path.join(destination, 'downloaded_file.zip')
+    gdown.download(url, output, quiet=False)
+
+def getCombiFromDBoptimalGoogleDrive(config):
+    # Set your Google Drive file ID and destination folder
+
+    dataset_folder = os.path.join(os.getcwd(),'smallDatasets')
+
+    if not os.path.exists(dataset_folder):
+
+        file_id = '1Z38dLQJFeqV-JPR0F2RsHDzfAuEP54SD'
+            # Create a folder called 'dataset' in the current working directory
+        print(file_id)
+        create_folder(dataset_folder)
+        # Use the 'dataset' folder as the destination folder
+        destination_folder = os.getcwd()
+        # Download the file
+        download_file_from_google_drive(file_id, destination_folder)
+        # Unzip the downloaded file
+        zip_path = os.path.join(destination_folder, 'downloaded_file.zip')
+        unzip_file(zip_path, destination_folder)
+        # Optionally, remove the zip file after extracting its contents
+        os.remove(zip_path)
+  
+    db_path = os.path.join(dataset_folder,config.dataset)
+    filenames_combinations = []
+    
+    # JuanManueeeel creo que es mejor que lo pongamos los dos aquí:
+    #rootDir = "smallDatasets/"
+    #db_path = os.path.join(rootDir, config.dataset)
+    #filenames_combinations = []
+
+    #C:\Users\juanm\Documents\IPCV_3\TRDP\OODbench\smallDatasets\smallDatasets\ImageNetA_small\n01498041
+    #C:\\Users\juanm\Documents\IPCV_3\TRDP\OODbench\smallDatasets\ImageNetA_small\     n01498041
+
+        # Get the file paths of the images in each folder
     class_folders = [os.path.join(db_path, class_id) for class_id in config.id_classes]
 
     # Generate the a list with the path to the images for each class 

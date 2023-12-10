@@ -134,6 +134,8 @@ class Planeset:
         fig.suptitle(title_sup, y=1.02, fontsize=20)
         fig.tight_layout()
         plt.show()
+        plt.savefig(title_sup + 'my_plot.png')
+
 
     def get_predictedClasses(self):
         return self.predictedClasses

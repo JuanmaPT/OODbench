@@ -44,7 +44,7 @@ for dataset in datasets:
                                dataset = dataset
                                )
     
-        filenamesCombis =  getCombiFromDBoptimal(config)
+        filenamesCombis =  getCombiFromDBoptimalGoogleDrive(config)
         #margins_save = [] #list for storing the marging values
         #margins_save.append(model)
         #margins_save.append(dataset)

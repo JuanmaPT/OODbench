@@ -20,11 +20,11 @@ class_selection=  [stingray, junco, bullfrog, agama, robin, jay, bad_eagle]
 config = Configuration(model= "ResNet18", 
                        N = 1,
                        id_classes= class_selection,
-                       resolution= 70,
+                       resolution= 510,
                        dataset = "ImageNetVal_small",
                        )
 
-filenamesCombis =  getCombiFromDBoptimal(config)
+filenamesCombis =  getCombiFromDBoptimalGoogleDrive(config)
 planesets = []
 
 for i, pathImgs in tqdm(enumerate(filenamesCombis), total=len(filenamesCombis), desc="Processing"):
