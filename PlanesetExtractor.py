@@ -67,7 +67,7 @@ class Planeset:
         
         return anchor_dict
     
-    def show(self,class_to_color):
+    def show(self,class_to_color,save_title):
         unique_classes = np.unique(self.prediction)
         num_classes = len(unique_classes)
         
@@ -130,11 +130,14 @@ class Planeset:
             axes[1, i].set_title(f"True class: {self.triplet.true_label[i]}, {data[str(self.triplet.true_label[i])][1]}\nPrediction:  {self.triplet.prediction[i]}, {data[str(self.triplet.prediction[i])][1]} \nScore:  {self.triplet.score[i]}")
     
        
-        title_sup = f"{self.config.dataset} | {self.config.modelType}"
-        fig.suptitle(title_sup, y=1.02, fontsize=20)
+        title_sup = f"{self.config.dataset}_{self.config.modelType}"
+        fig.suptitle(title_sup, y=1, fontsize=20)
+        fig.suptitle(title_sup, y=0.98, fontsize=20)
         fig.tight_layout()
         plt.show()
-        plt.savefig(title_sup + 'my_plot.png')
+        fig.savefig(save_title)
+        fig.clear()
+        plt.close()
 
 
     def get_predictedClasses(self):

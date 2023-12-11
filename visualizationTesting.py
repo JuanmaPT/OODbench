@@ -20,7 +20,7 @@ class_selection=  [stingray, junco, bullfrog, agama, robin, jay, bad_eagle]
 config = Configuration(model= "ResNet18", 
                        N = 1,
                        id_classes= class_selection,
-                       resolution= 510,
+                       resolution= 4,
                        dataset = "ImageNetVal_small",
                        )
 
@@ -36,9 +36,13 @@ descriptors = [PlanesetInfoExtractor(planeset,config) for planeset in planesets]
 
 #%% 
 class_to_color = get_diff_color(planesets)
+
 #%% 
-for planeset in planesets:
-    planeset.show(class_to_color)
+for i, planeset in enumerate(planesets):
+    save_title = f"results/{config.modelType}/planeset_{i}.png"
+    print(save_title)
+    planeset.show(class_to_color,save_title)
+    break
 
 """margin_dict = {label: [] for label in config.labels}
 for i,planeset in enumerate(planesets):
