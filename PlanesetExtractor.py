@@ -137,9 +137,9 @@ class Planeset:
         fig.suptitle(title_sup, y=0.98, fontsize=20)
         fig.tight_layout()
         plt.show()
-        fig.savefig(save_title)
-        fig.clear()
-        plt.close()
+        #fig.savefig(save_title)
+        #fig.clear()
+        #plt.close()
 
     def show_scores(self,class_to_color,save_title):
         unique_classes = np.unique(self.prediction)
@@ -192,6 +192,7 @@ class Planeset:
         fig.suptitle(title_sup, y=0.98, fontsize=20)
         fig.tight_layout()
         plt.show()
+        print('Showing')
         #fig.savefig(save_title)
         #fig.clear()
         #plt.close()
@@ -201,12 +202,20 @@ class Planeset:
 
 
     def show_scores_3D(self, class_to_color):
+
+        keys = list(self.anchors.keys())
+        anchor_index = []
+        for key in keys:
+            anchor_index.append(self.anchors[key])
+        
         unique_classes = np.unique(self.prediction)
+        scores_surfaces = np.zeros((3, len(unique_classes)))
+
 
         # Create an empty figure
         fig = go.Figure()
 
-        for class_label in unique_classes:
+        for c, class_label in enumerate(unique_classes):
             class_indices = np.where(self.prediction == class_label)
             # Create a boolean matrix where True corresponds to the class_label
             class_mask = (self.prediction == class_label)
@@ -216,10 +225,12 @@ class Planeset:
             color = class_to_color.get(class_label, [0, 0, 0])[:3]
 
             # Create a surface plot for the current class
-            X, Y = np.meshgrid(np.arange(self.score.shape[1]), np.arange(self.score.shape[0]))
+            X, Y = np.meshgrid(np.arange(self.score.shape[0]), np.arange(self.score.shape[1]))
             surface = go.Surface(z=class_score_matrix, x=X, y=Y, colorscale=[[0, f'rgb({color[0]}, {color[1]}, {color[2]})'],
                                                                     [1, f'rgb({color[0]}, {color[1]}, {color[2]})']],
                                 showscale=False)
+            for i, key in enumerate(keys):
+                scores_surfaces[i,c] = class_score_matrix[self.anchors[key]]
             
             # Add the surface to the figure
             fig.add_trace(surface)
@@ -240,16 +251,18 @@ class Planeset:
             )
         )
 
-        keys = list(self.anchors.keys())
+        #Plot points on anchor location
+
+        
         for i in range(2):
             for key in keys:
-                x, y = self.anchors[key]
+                x_anchor, y_anchor = self.anchors[key]
                 text_anchor = ['bottom', 'top'][i]  # Use 'bottom' or 'top' depending on the anchor iteration
 
                 # Create a scatter plot for the anchor point with a circle marker
                 fig.add_trace(go.Scatter3d(
-                    x=[x],
-                    y=[y],
+                    x=[x_anchor],
+                    y=[y_anchor],
                     z=[self.score[self.anchors[key]]],  # Adjust the z-coordinate as needed
                     mode='markers',
                     marker=dict(
@@ -264,10 +277,10 @@ class Planeset:
 
         # Show the plot
         fig.show()
+        print('Figure shown')
 
     def get_predictedClasses(self):
         return self.predictedClasses
     
         
         
-   
