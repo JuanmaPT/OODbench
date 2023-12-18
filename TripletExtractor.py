@@ -5,6 +5,8 @@ import torch
 from utils import *
 import numpy as np
 
+from memory_profiler import profile
+
 class Triplet:
     def __init__(self, pathImgs, config):
         self.pathImgs = pathImgs
@@ -13,7 +15,7 @@ class Triplet:
         self.images = self.getImages()
         self.features = self.extractFeatures()
         self.prediction, self.score = self.predict()
-        self.isImgPredCorrect = self.checkPred()
+        #self.isImgPredCorrect = self.checkPred()
     
     def getLabel(self):
         idx = [pathImg.split(f"{self.config.dataset}\\")[1].split("\\")[0] for pathImg in  self.pathImgs]
@@ -32,6 +34,7 @@ class Triplet:
     def getImages(self):
         return [Image.open(self.pathImgs[0]), Image.open(self.pathImgs[1]), Image.open(self.pathImgs[2])]
     
+    #@profile
     def extractFeatures(self):
         feature_triplet = []
         for image in self.images:
@@ -63,6 +66,7 @@ class Triplet:
 
         return feature_triplet
     
+    #@profile
     def predict(self):
         pred_imgs = []
         score_imgs = []
@@ -87,5 +91,5 @@ class Triplet:
             #print(pred_imgs)
         return pred_imgs, score_imgs
         
-    def checkPred(self):
-        return [pred == true_label for pred, true_label in zip(self.prediction, self.config.labels)]
+    #def checkPred(self):
+        #return [pred == true_label for pred, true_label in zip(self.prediction, self.config.labels)]

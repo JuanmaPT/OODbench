@@ -42,7 +42,7 @@ class Configuration:
             for key, value in data.items():
                 if search_id in value:
                     labels.append(int(key))
-                    print(key, value)
+                    #print(key, value)
 
         return labels
 
@@ -103,10 +103,13 @@ def get_folders(path):
 def getCombiFromDBoptimal(config):
     import os
     if os.getlogin() == 'Blanca':
-        rootDir = "C:/Users/Blanca/Documents/IPCV/TRDP/TRDP2/smallDatasets/"
+        rootDir = "smallDatasets/"
+        db_path = os.path.join(rootDir, config.dataset)
+    
     if os.getlogin() == 'juanm':
         rootDir = "C:/Users/juanm/Documents/IPCV_3/TRDP/smallDatasets/"
-    db_path = rootDir + config.dataset
+        db_path = rootDir + config.dataset
+    
     filenames_combinations = []
     
     # JuanManueeeel creo que es mejor que lo pongamos los dos aquí:
@@ -256,7 +259,7 @@ def plot_pmf(marginList, class_, num_bins,config, min_val, max_val,result_folder
 def create_result_folder(models):
     root_folder = "results"
     #models = ["ResNet18", "ViT"]
-    subfolders = ["plots", "values"]
+    subfolders = ["plots", "margin_values"]
     
     # Create the root folder if it doesn't exist
     if not os.path.exists(root_folder):
@@ -277,7 +280,7 @@ def create_result_folder(models):
             if not os.path.exists(subfolder_path):
                 os.makedirs(subfolder_path)
     
-    print("Folder structure created successfully.")
+    #print("Folder structure created successfully.")
 
 
 

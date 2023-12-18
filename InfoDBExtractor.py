@@ -4,6 +4,8 @@ import numpy as np
 import cv2
 from utils import *
 
+from memory_profiler import profile
+
 class PlanesetInfoExtractor:    
      def __init__(self, planeset, config):
          
@@ -37,7 +39,7 @@ class PlanesetInfoExtractor:
           #return [(i,j) for i,j in zip(max_distances, max_positions)]
           return max_distances
         
-    
+     #@profile
      def extractMargin(self):
         "extract the margin as the min distance between the anchor and a different class prediction"        
         margin = []

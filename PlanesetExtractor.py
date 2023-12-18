@@ -6,6 +6,8 @@ import matplotlib.patches as patches
 from matplotlib.lines import Line2D
 import matplotlib.patches as mpatches
 
+from memory_profiler import profile
+
 class Planeset:
     def __init__(self, triplet, config):
         self.triplet = triplet
@@ -15,14 +17,14 @@ class Planeset:
         self.anchors = self.getAnchors()
         self.predictedClasses = np.unique(self.prediction).astype(np.uint16)
     
-       
+    #@profile  
     def computePlaneset(self):
         # calculate the plane spanned by the three images 
         a, b_orthog, b, coords = get_plane(self.triplet.features[0], self.triplet.features[1], self.triplet.features[2])
         # get the dataset of images on a 2D plane by the combination of the features
         return plane_dataset(self.triplet.features[0], a, b_orthog, coords, resolution= self.config.resolution )
         
-    
+    #@profile
     def predict(self):
         "returns 2D labelled image"
         self.config.model.eval()
