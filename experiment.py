@@ -55,14 +55,18 @@ def parse_arguments():
                         default = 15,
                         help = "Resolution to generate a plane dataset given a triplet of images")
     
-    parser.add_argument("--loadDataset",
+    #parser.add_argument("--loadDataset",
+                        #type= str,
+                        #default = "False",
+                        #help= "Boolean parameter to download the dataset from Google Drive")
+    
+    parser.add_argument("--useFilteredPaths",
                         type= str,
-                        default = "False",
-                        help= "Boolean parameter to download the dataset from Google Drive")
+                        default = "True",
+                        help= "Boolean parameter to enforce the presence of correct predictions")
     
     args = parser.parse_args()
-    
-    
+       
     if len(args.classes)<3:
         raise ValueError("Number of classes should be at least 3") 
     return args
@@ -71,53 +75,57 @@ def parse_arguments():
 def main():
     # Parse command line arguments
     args = parse_arguments()
+    
+    print("Class selection:")
     class_selection = []
     for class_ in args.classes:
         class_selection.append(class2id[class_][0])
-        print(class_, class2id[class_])
-        
+        print("\t", class_, class2id[class_])
+    
+    class_selection = sorted(class_selection)     
+    
     # Create folder to store results
     create_result_folder(args.model) 
     
     # run experiment for the given configuration
     for dataset in args.dataset:
         for model in args.model:
-            print(dataset)
-            print(model)
+            print(f"Dataset: \n\t{dataset}")
+            print(f"Model: \n\t{model}")
             config = Configuration(model= model, 
                                    N = args.N, 
+                                   dataset = dataset,
                                    id_classes= class_selection,
                                    resolution= args.resolution,
-                                   dataset = dataset
+                                   useFilteredPaths = args.useFilteredPaths, 
                                    )
-            
-    
+             
             # generate all the possible combinations between clasess and triplets of images
-            if args.loadDataset == "True":
-                filenamesCombis =  getCombiFromDBoptimalGoogleDrive(config)
-                
-            else:
-                filenamesCombis =  getCombiFromDBoptimal(config)
-            
-            # Create a csv file to write results 
-            with open(f"results/{model}/margin_values/{model}_{dataset}_values.csv", "w") as csvfile:
-                for i, pathImgs in tqdm(enumerate(filenamesCombis), total=len(filenamesCombis), desc="Processing"):
-                    #1. generate triplet object
-                    triplet_obj= Triplet(pathImgs, config)
-                    #2. create plane set 
-                    planeset_obj = Planeset(triplet_obj, config)
-                    #3. extract the margin for those images in the triplet correctly predicted
-                    for j in range(3):
-                        if triplet_obj.true_label[j] == triplet_obj.prediction[j]:
-                            margin = round(PlanesetInfoExtractor(planeset_obj,config).margin[j],4)
-                            #write results
-                            csvfile.write(f"{triplet_obj.true_label[j]},{margin}\n")
-                    
-                    # delete variables to free up memory
-                    del triplet_obj
-                    del planeset_obj
+            filenamesCombis =  getCombiFromDBoptimalGoogleDrive(config)
         
+            # Create csv files to write results 
+            with open(f"results/{model}/margin_values/{model}_{dataset}_N{config.N}_R{config.resolution}.csv", "w") as margin_csvfile:
+                with open(f"results/{model}/classPredictions/{model}_{dataset}_N{config.N}_R{config.resolution}.csv", "w") as preds_csvfile:
+                    for i, pathImgs in tqdm(enumerate(filenamesCombis), total=len(filenamesCombis), desc="Processing"):
+                        #1. generate triplet object
+                        triplet_obj= Triplet(pathImgs, config)
+                        #2. create plane set 
+                        planeset_obj = Planeset(triplet_obj, config)
+                        #store triplet label, triplet predictions and unique classes predicted in planeset
+                        preds_csvfile.write(f"{','.join(map(str, planeset_obj.triplet.true_label))},{','.join(map(str, planeset_obj.triplet.prediction))},{','.join(map(str, planeset_obj.predictedClasses))}\n")
+                        #3. extract the margin for those images in the triplet correctly predicted
+                        for j in range(3):
+                            if triplet_obj.true_label[j] == triplet_obj.prediction[j]:
+                                margin = round(PlanesetInfoExtractor(planeset_obj,config).margin[j],4)
+                                #write results
+                                margin_csvfile.write(f"{triplet_obj.true_label[j]},{margin}\n")
+                                del margin
+                        
+                        # delete variables to free up memory
+                        del triplet_obj
+                        del planeset_obj
             
+            del filenamesCombis
     print('\n All done. Results saved at results/')
 
 if __name__ == "__main__":
