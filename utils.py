@@ -19,7 +19,7 @@ import gdown
 import zipfile
 
 class Configuration:
-    def __init__(self, model, N, id_classes, resolution, dataset):
+    def __init__(self, model, N, useFilteredPaths,id_classes, resolution, dataset):
         self.modelType = model
         self.N = N
         self.id_classes = id_classes
@@ -32,6 +32,12 @@ class Configuration:
             self.model, self.base_model, self.head_model = self.load_resnet18()
         elif self.modelType == 'ViT':
             self.model, self.base_model, self.head_model = self.load_vit()
+            
+        if useFilteredPaths:
+            self.useFilteredPaths = True
+        else:
+            self.useFilteredPaths = True
+            
 
     def get_labels(self):
         with open("imagenet_class_index.json", 'r') as json_file:
@@ -100,6 +106,40 @@ def get_folders(path):
   return folders
 
 
+def filterPaths(config, image_paths,i):
+    
+    class_label = torch.ones(1, len(image_paths))*config.labels[i]
+    
+    # Create a batch tensor from the list of preprocessed images
+    transform = transforms.Compose([
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+    
+    images = [transform(Image.open(image_path).convert('RGB')) for image_path in image_paths]
+    batch_tensor = torch.stack(images)
+    #print(batch_tensor.size())
+    
+    # Make predictions
+    with torch.no_grad():
+        outputs = config.model(batch_tensor)
+    
+    predicted_class = torch.argmax(outputs,dim =1)
+    
+    # get only the correct predictions
+    filteredPaths = [path for path, label, pred in zip(image_paths,  class_label.squeeze().tolist(), predicted_class.tolist()) if label == pred]
+    
+    #if the number correct predictions is less that N, add incorrect 
+    remaining_count = config.N - len(filteredPaths)
+    if remaining_count > 0:
+        incorrect_paths = [path for path, label, pred in zip(image_paths,  class_label.squeeze().tolist(),predicted_class.tolist()) if label !=pred]
+        filteredPaths.extend(incorrect_paths[:remaining_count])
+    
+    return filteredPaths
+
+
 def getCombiFromDBoptimal(config):
     import os
     if os.getlogin() == 'Blanca':
@@ -112,22 +152,22 @@ def getCombiFromDBoptimal(config):
     
     filenames_combinations = []
     
-    # JuanManueeeel creo que es mejor que lo pongamos los dos aquí:
-    #rootDir = "smallDatasets/"
-    #db_path = os.path.join(rootDir, config.dataset)
-    #filenames_combinations = []
-
     # Get the file paths of the images in each folder
-    class_folders = [os.path.join(db_path, class_id) for class_id in config.id_classes]
+    class_folders_paths = [os.path.join(db_path, class_id) for class_id in config.id_classes]
 
-    # Generate the a list with the path to the images for each class 
-    class_lists = []
-    for class_folder in class_folders: 
-        class_list = [os.path.join(class_folder, filename) for filename in os.listdir(class_folder)[:config.N]]
-        class_lists.append(class_list)
-     
+    path_class_lists = [] 
+    for i, folder_path in enumerate(class_folders_paths): 
+        print(folder_path)
+        folder_images_path = [os.path.join(folder_path, filename) for filename in os.listdir(folder_path)]
+        
+        if config.useFilteredPaths:
+            folder_images_path = filterPaths(config, folder_images_path, i )
+ 
+        path_class_lists.append(folder_images_path[:config.N])
+    
+    
     # combinations at class level (k_clases over 3)
-    combinations_3 = list(itertools.combinations(class_lists, 3))
+    combinations_3 = list(itertools.combinations(path_class_lists, 3))
     #combinations at image level N^3
     for combo in combinations_3:
         for values in itertools.product(*combo):
@@ -152,7 +192,6 @@ def download_file_from_google_drive(file_id, destination):
 
 def getCombiFromDBoptimalGoogleDrive(config):
     # Set your Google Drive file ID and destination folder
-
     dataset_folder = os.path.join(os.getcwd(),'smallDatasets')
 
     if not os.path.exists(dataset_folder):
@@ -171,33 +210,31 @@ def getCombiFromDBoptimalGoogleDrive(config):
         # Optionally, remove the zip file after extracting its contents
         os.remove(zip_path)
   
-    db_path = os.path.join(dataset_folder,config.dataset)
+    db_path = os.path.join(dataset_folder, config.dataset)
     filenames_combinations = []
-    
-    # JuanManueeeel creo que es mejor que lo pongamos los dos aquí:
-    #rootDir = "smallDatasets/"
-    #db_path = os.path.join(rootDir, config.dataset)
-    #filenames_combinations = []
 
-    #C:\Users\juanm\Documents\IPCV_3\TRDP\OODbench\smallDatasets\smallDatasets\ImageNetA_small\n01498041
-    #C:\\Users\juanm\Documents\IPCV_3\TRDP\OODbench\smallDatasets\ImageNetA_small\     n01498041
-
-        # Get the file paths of the images in each folder
-    class_folders = [os.path.join(db_path, class_id) for class_id in config.id_classes]
-
+    # Get the file paths of the images in each folder
+    class_folders_paths = [os.path.join(db_path, class_id) for class_id in config.id_classes]
+ 
     # Generate the a list with the path to the images for each class 
-    class_lists = []
-    for class_folder in class_folders: 
-        class_list = [os.path.join(class_folder, filename) for filename in os.listdir(class_folder)[:config.N]]
-        class_lists.append(class_list)
-     
+    path_class_lists = [] 
+    nMax=50
+    for i, folder_path in enumerate(class_folders_paths): 
+        folder_images_path = [os.path.join(folder_path, filename) for filename in os.listdir(folder_path)][:nMax]
+        
+        if config.useFilteredPaths:
+            folder_images_path = filterPaths(config, folder_images_path, i )
+ 
+        path_class_lists.append(folder_images_path[:config.N])
+    
+    #### Path combinations #####
     # combinations at class level (k_clases over 3)
-    combinations_3 = list(itertools.combinations(class_lists, 3))
+    combinations_3 = list(itertools.combinations(path_class_lists, 3))
     #combinations at image level N^3
     for combo in combinations_3:
         for values in itertools.product(*combo):
             filenames_combinations.append(values)
-    
+   
     return filenames_combinations
 
 
@@ -259,7 +296,7 @@ def plot_pmf(marginList, class_, num_bins,config, min_val, max_val,result_folder
 def create_result_folder(models):
     root_folder = "results"
     #models = ["ResNet18", "ViT"]
-    subfolders = ["plots", "margin_values"]
+    subfolders = ["plots", "margin_values", "classPredictions"]
     
     # Create the root folder if it doesn't exist
     if not os.path.exists(root_folder):
@@ -281,8 +318,6 @@ def create_result_folder(models):
                 os.makedirs(subfolder_path)
     
     #print("Folder structure created successfully.")
-
-
 
     
 def save_to_csv(model_dict, output_folder):
