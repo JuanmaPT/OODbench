@@ -8,15 +8,18 @@ import argparse
 
 from memory_profiler import profile
 
+# -Guardar las unique clases en cada triplet.
+# -Añadir opción de filtrar por predicción 
+
 # Availabe classes for the study
 class2id = {
-    "stingray": ["n01498041", "6"] ,
-    "junco": ["n01534433", "13"],
-    "robin": ["n01558993", "15"],
-    "jay": ["n01580077", "17"],
+    "stingray":  ["n01498041", "6"] ,
+    "junco":     ["n01534433", "13"],
+    "robin":     ["n01558993", "15"],
+    "jay":       ["n01580077", "17"],
     "bad_eagle": ["n01614925", "22"] ,
-    "bullfrog": ["n01641577", "30"],
-    "agama": ["n01687978", "42"]
+    "bullfrog":  ["n01641577", "30"],
+    "agama":     ["n01687978", "42"]
 }
 
 def parse_arguments():
