@@ -8,7 +8,7 @@ import matplotlib.patches as mpatches
 import plotly.graph_objects as go
 
 
-from memory_profiler import profile
+#from memory_profiler import profile
 
 class Planeset:
     def __init__(self, triplet, config):

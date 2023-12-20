@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 from utils import *
 
-from memory_profiler import profile
+#from memory_profiler import profile
 
 class PlanesetInfoExtractor:    
      def __init__(self, planeset, config):
