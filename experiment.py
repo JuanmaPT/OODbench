@@ -116,7 +116,15 @@ def main():
                         #3. extract the margin for those images in the triplet correctly predicted
                         for j in range(3):
                             if triplet_obj.true_label[j] == triplet_obj.prediction[j]:
-                                margin = round(PlanesetInfoExtractor(planeset_obj,config).margin[j],4)
+                                try:
+                                    margin = round(PlanesetInfoExtractor(planeset_obj,config).margin[j],4)
+                                except IndexError as e:
+                                    print(f"IndexError: {e} at j={j}. Skipping this iteration.")
+                                    margin = -1
+                                    margin_csvfile.write(f"Error,{margin}\n")
+                                    del margin
+                                    continue
+                                
                                 #write results
                                 margin_csvfile.write(f"{triplet_obj.true_label[j]},{margin}\n")
                                 del margin
