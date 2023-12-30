@@ -5,7 +5,7 @@ import torch
 from utils import *
 import numpy as np
 
-from memory_profiler import profile
+#from memory_profiler import profile
 
 class Triplet:
     def __init__(self, pathImgs, config):

@@ -47,18 +47,18 @@ planesetsViT = []
 for i, pathImgs in tqdm(enumerate(filenamesCombis), total=len(filenamesCombis), desc="Processing"):
     planesetsResnet.append(Planeset(Triplet(pathImgs, configResNet), configResNet))
     planesetsViT.append((Planeset(Triplet(pathImgs, configViT), configViT)))
-
-
+#%%
 # 2D Visualization
 # Generate a unique colormap 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 class_to_color = get_diff_color(planesetsResnet)
 
+
 for i,planeset in enumerate(planesetsResnet):
     planeset.show(class_to_color,f"planesets/resNet_val_15_{i}.png")
 
 #%%for i,planeset in enumerate(planesetsViT):
-    planeset.show(class_to_color,f"planesets/vit__val_15_{i}.png")
+    #planeset.show(class_to_color,f"planesets/vit__val_15_{i}.png")
     
 #%% 3D visualization
 # manually select id
@@ -68,18 +68,6 @@ import plotly.express as px
 pio.renderers.default='browser'
 idx= 2
 show_scores_3D(planesetsResnet[idx], class_to_color)
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

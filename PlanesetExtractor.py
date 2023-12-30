@@ -5,9 +5,12 @@ import matplotlib.image as mpimg
 import matplotlib.patches as patches
 from matplotlib.lines import Line2D
 import matplotlib.patches as mpatches
+import plotly.graph_objects as go
+
 
 from memory_profiler import profile
 import plotly.graph_objects as go
+
 
 class Planeset:
     def __init__(self, triplet, config):
@@ -275,14 +278,15 @@ class Planeset:
 
         # Show the plot
         fig.show()
+
         print('Figure shown')"""
         
     
-    
+
+
 
     def get_predictedClasses(self):
         return self.predictedClasses
     
         
         
-   
