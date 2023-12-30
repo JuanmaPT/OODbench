@@ -28,14 +28,14 @@ def parse_arguments():
                         type = str, 
                         nargs="+",
                         choices=["ImageNetA_small", "ImageNetSD_small", "ImageNetVal_small",  "SignalBlur_small"], 
-                        default=["ImageNetA_small"], 
+                        default=["SignalBlur_small"], 
                         help="Dataset selection")
     
     parser.add_argument("--model", 
                         type= str,
                         nargs="+",
                         choices=["ResNet18", "ViT"],
-                        default=["ResNet18"], 
+                        default=["ViT"], 
                         help="Model selection")
     
     parser.add_argument("--classes",
@@ -104,16 +104,15 @@ def main():
             filenamesCombis =  getCombiFromDBoptimalGoogleDrive(config)
             
             # modificar aqui para volver a runear
-            tuneCombis = False
+            tuneCombis = True
             start_point = 0 #poner aqui el ultimo planeset
-            endPoint = 10000  #numero de planesets a calcular más
+            extraPlanesets = 200000  #numero de planesets a calcular más
             if tuneCombis== True:
                 randon.seed(42)
-                mixCombis = filenamesCombis.copy()
+                filenamesCombis = filenamesCombis[start_point:start_point+extraPlanesets]
                 random.shuffle(filenamesCombis)
-                mixCombis = mixCombis[start_point:start_point+endPoint]
                 
-        
+            
             # Create csv files to write results 
             # ---->>>>> he cambiado el nombre del file para second run
             with open(f"results/{model}/margin_values/{model}_{dataset}_N{config.N}_R{config.resolution}_run_2.csv", "w") as margin_csvfile:
