@@ -6,6 +6,8 @@ from tqdm import tqdm
 import numpy as np
 import argparse
 
+import random
+
 #from memory_profiler import profile
 
 # -Guardar las unique clases en cada triplet.
@@ -105,10 +107,10 @@ def main():
             
             # modificar aqui para volver a runear
             tuneCombis = True
-            start_point = 0 #poner aqui el ultimo planeset
-            extraPlanesets = 200000  #numero de planesets a calcular más
+            start_point = 10984 #poner aqui el ultimo planeset
+            extraPlanesets = 300000  #numero de planesets a calcular más
             if tuneCombis== True:
-                randon.seed(42)
+                random.seed(42)
                 filenamesCombis = filenamesCombis[start_point:start_point+extraPlanesets]
                 random.shuffle(filenamesCombis)
                 
