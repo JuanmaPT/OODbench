@@ -105,12 +105,13 @@ def main():
             
             # modificar aqui para volver a runear
             tuneCombis = False
-            endPoint = 10000  #10000
+            start_point = 0 #poner aqui el ultimo planeset
+            endPoint = 10000  #numero de planesets a calcular más
             if tuneCombis== True:
                 randon.seed(42)
                 mixCombis = filenamesCombis.copy()
                 random.shuffle(filenamesCombis)
-                mixCombis = mixCombis[:endPoint]
+                mixCombis = mixCombis[start_point:start_point+endPoint]
                 
         
             # Create csv files to write results 
