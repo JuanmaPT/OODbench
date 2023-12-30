@@ -18,6 +18,8 @@ from matplotlib.colors import ListedColormap
 import gdown
 import zipfile
 
+import plotly.graph_objects as go
+
 class Configuration:
     def __init__(self, model, N, useFilteredPaths,id_classes, resolution, dataset):
         self.modelType = model
@@ -33,10 +35,10 @@ class Configuration:
         elif self.modelType == 'ViT':
             self.model, self.base_model, self.head_model = self.load_vit()
             
-        if useFilteredPaths:
+        if useFilteredPaths == "True":
             self.useFilteredPaths = True
         else:
-            self.useFilteredPaths = True
+            self.useFilteredPaths = False
             
 
     def get_labels(self):
@@ -107,7 +109,7 @@ def get_folders(path):
 
 
 def filterPaths(config, image_paths,i):
-    
+    #filter paths in folder belonging to class i 
     class_label = torch.ones(1, len(image_paths))*config.labels[i]
     
     # Create a batch tensor from the list of preprocessed images
@@ -193,7 +195,7 @@ def download_file_from_google_drive(file_id, destination):
 def getCombiFromDBoptimalGoogleDrive(config):
     # Set your Google Drive file ID and destination folder
     dataset_folder = os.path.join(os.getcwd(),'smallDatasets')
-
+  
     if not os.path.exists(dataset_folder):
 
         file_id = '1Z38dLQJFeqV-JPR0F2RsHDzfAuEP54SD'
@@ -223,6 +225,7 @@ def getCombiFromDBoptimalGoogleDrive(config):
         folder_images_path = [os.path.join(folder_path, filename) for filename in os.listdir(folder_path)][:nMax]
         
         if config.useFilteredPaths:
+           
             folder_images_path = filterPaths(config, folder_images_path, i )
  
         path_class_lists.append(folder_images_path[:config.N])
@@ -249,33 +252,6 @@ def min_max_normalize(distances):
     max_value = max(distances)
     normalized_distances = [(distance - min_value) / (max_value - min_value) for distance in distances]
     return normalized_distances
-
-
-def plot_pmf(marginList, class_, num_bins,config, min_val, max_val,result_folder_name):
-    
-    with open( "imagenet_class_index.json", 'r') as json_file:
-        dataDict = json.load(json_file)
-    title = dataDict[str(class_)][1]
-    
-    counts, bins = np.histogram(marginList, bins=num_bins, density=True)
-    bins = bins[:-1] + (bins[1] - bins[0]) / 2
-    probs = counts / float(counts.sum())
-
-    plt.bar(bins, probs, width=(bins[1] - bins[0]))
-    #plt.plot(bins, probs, linestyle='-')
-    plt.xticks(np.arange(np.ceil(min_val), np.ceil(max_val) + 1))
-
-    # Plot the PMF
-    plt.xlabel('Values')
-    plt.ylabel('Probability')
-    #plt.xlim=(np.ceil(min_val), np.ceil(max_val))
-    # Uncomment the following line if you want to set y-axis limit between 0 and 1
-    # plt.ylim([0, 1])
-    plt.title(f"PMF - {config.dataset}\n{title} | {config.modelType} | N= {config.N} ") 
-    plt.savefig(f"results/{config.modelType}/plots/PMF_{config.dataset}_{title}_{config.modelType}_N_{config.N}.png")
-    #plt.close()
-    plt.show()
-
 
 """def create_result_folder(result_folder_name):
     # Check if the folder exists
@@ -340,6 +316,7 @@ def get_diff_color(planesets):
 
     # Extract colors from the colormap at the specified positions
     distinct_colors = [cmap(pos) for pos in color_positions]
+    
 
     # Create a ListedColormap from the distinct colors
     custom_cmap = ListedColormap(distinct_colors)
@@ -349,6 +326,95 @@ def get_diff_color(planesets):
     return class_to_color
 
 
+def show_scores_3D(planeset, class_to_color):
+    keys = list(planeset.anchors.keys())
+    unique_classes = np.unique(planeset.prediction)
+
+    # Create an empty figure
+    fig = go.Figure()
+
+    with open("imagenet_class_index.json", 'r') as json_file:
+        class_index = json.load(json_file)
+
+    for c, class_label in enumerate(unique_classes):
+        class_indices = np.where(planeset.prediction == class_label)
+        # Create a boolean matrix where True corresponds to the class_label
+        class_mask = (planeset.prediction == class_label)
+        # Use the boolean matrix to extract scores for the current class
+        class_score_matrix = planeset.score.copy()
+        class_score_matrix[~class_mask] = 0
+        color = class_to_color.get(class_label, [0, 0, 0])[:3]
+        color = [round(value * 255) for value in color]
+
+        # Create a surface plot for the current class
+        X, Y = np.meshgrid(np.arange(planeset.score.shape[0]), np.arange(planeset.score.shape[1]-1, -1, -1))
+        surface = go.Surface(z=class_score_matrix, x=X, y=Y,
+                            colorscale=[[0, f'rgb(0,0,0)'],
+                                        [1, f'rgb({color[0]}, {color[1]}, {color[2]})']],
+                            showscale=False,
+                            name=f"Class {class_label}"  # Add the name attribute
+                            )
+
+        # Add the surface to the figure
+        fig.add_trace(surface)
+
+    # Update trace and layout settings
+    fig.update_traces(
+        contours_z=dict(show=True, usecolormap=True, highlightcolor="limegreen", project_z=True)
+    )
+    fig.update_layout(
+        title='3D DB',
+        width=1000,
+        height=1000,
+        margin=dict(l=65, r=50, b=65, t=90),
+        scene=dict(
+            xaxis_title='xaxis decision space',
+            yaxis_title='yaxis decision space',
+            zaxis_title='Score'
+        )
+    )
+
+    for c, class_label in enumerate(unique_classes):
+        fig.add_trace(go.Scatter3d(
+            x=[(0.3)],
+            y=[(0.3)],
+            z=[(0.3)],
+            mode='markers',
+            marker=dict(size=12, color=f'rgb({color[0]}, {color[1]}, {color[2]})'),
+            name=f"{class_label}: {class_index[str(class_label)][1]}"
+        ))
+
+    for i, key in enumerate(keys):
+        x_anchor, y_anchor = planeset.anchors[key]
+        text_anchor = ['bottom', 'top', 'middle'][i]
+
+        # Create a scatter plot for the anchor point with a circle marker
+        fig.add_trace(go.Scatter3d(
+            x=[x_anchor],
+            y=[planeset.score.shape[1] - 1 - y_anchor],
+            z=[planeset.score[y_anchor, x_anchor] + 0.05],
+            mode='markers',
+            marker=dict(
+                size=10,
+                color=['black', 'black', 'black'][i],
+                symbol=['diamond', 'diamond', 'diamond'][i],
+            ),
+            text=f'Anchor_{i}',
+            textposition=f'{text_anchor} center',
+        ))
+
+        # Adding a line trace to create a dotted line in the z-direction
+        fig.add_trace(go.Scatter3d(
+            x=[x_anchor, x_anchor],
+            y=[planeset.score.shape[1] - 1 - y_anchor, planeset.score.shape[1] - 1 - y_anchor],
+            z=[planeset.score[y_anchor, x_anchor] + 0.05, 0],
+            mode='lines',
+            line=dict(color=['black', 'black', 'black'][i], dash='solid', width=2),
+        ))
+
+    # Show the plot
+    fig.show()
+    print('Figure shown')
 
 
 
